@@ -682,7 +682,7 @@ export const EmployeePredictions: React.FC = () => {
 
             </thead>
 
-            <tbody>
+            <tbody className="text-[#4F3D70]">
 
               {loading ? (
 
