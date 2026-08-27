@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Backend uploads
+# Ignore everything first
+backend/data/uploads/*
+
+# Keep only the 3 Kaggle datasets
+!backend/data/uploads/WA_Fn-UseC_-HR-Employee-Attrition.csv
+!backend/data/uploads/employee_attrition_dataset.csv
+!backend/data/uploads/HR_Attrition_Indian_Dataset.csv
+
+# Keep placeholder if present
+!backend/data/uploads/.gitkeep
+
+# Ignore generated ML models
+backend/ml_models/*
+
+# Keep placeholder if present
+!backend/ml_models/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.dist/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+data/uploads/
