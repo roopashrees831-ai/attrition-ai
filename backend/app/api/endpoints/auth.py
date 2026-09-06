@@ -3,17 +3,22 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.schema import User, Company
+
 from app.schemas.pydantic_models import (
     Token,
     LoginRequest,
     DemoLoginRequest,
-    UserOut
+    UserOut,
+    ChangePasswordRequest
 )
+
 from app.security import (
     verify_password,
+    get_password_hash,
     create_access_token,
     get_current_user
 )
+
 
 router = APIRouter(
     prefix="/auth",
@@ -26,23 +31,22 @@ router = APIRouter(
 # ============================================================
 
 LOGIN_CONFIG = {
-
     "IBM HR Analytics": {
-        "requires_credentials": False,
-        "login_label": "Open IBM Demo",
-        "dataset_label": "Kaggle IBM HR Employee Attrition Dataset",
+        "requires_credentials": True,
+        "login_label": "Login to IBM HR Analytics",
+        "dataset_label": "IBM HR Analytics Employee Attrition Dataset",
     },
 
     "NovaTech Solutions": {
-        "requires_credentials": False,
-        "login_label": "Open NovaTech Demo",
-        "dataset_label": "Kaggle Employee Attrition Dataset",
+        "requires_credentials": True,
+        "login_label": "Login to NovaTech Solutions",
+        "dataset_label": "Employee Attrition Dataset",
     },
 
     "Lavender Systems": {
-        "requires_credentials": False,
-        "login_label": "Open Lavender Demo",
-        "dataset_label": "Kaggle Indian HR Attrition Dataset",
+        "requires_credentials": True,
+        "login_label": "Login to Lavender Systems",
+        "dataset_label": "Indian HR Attrition Dataset",
     },
 }
 
@@ -51,10 +55,8 @@ LOGIN_CONFIG = {
 # TOKEN RESPONSE
 # ============================================================
 
-def _token_response(
-    user: User,
-    company: Company
-):
+def _token_response(user: User, company: Company):
+
     access_token = create_access_token(
         data={
             "sub": user.email,
@@ -66,6 +68,7 @@ def _token_response(
     return {
         "access_token": access_token,
         "token_type": "bearer",
+
         "user": {
             "id": user.id,
             "name": user.name,
@@ -78,7 +81,7 @@ def _token_response(
 
 
 # ============================================================
-# NORMAL LOGIN
+# COMPANY NAME + PASSWORD LOGIN
 # ============================================================
 
 @router.post(
@@ -90,66 +93,45 @@ def login(
     db: Session = Depends(get_db)
 ):
 
-    query = db.query(User)
-    company = None
+    # Find selected company
+    company = (
+        db.query(Company)
+        .filter(
+            Company.company_name == request.company_name
+        )
+        .first()
+    )
 
-    if request.company_name:
-
-        company = (
-            db.query(Company)
-            .filter(
-                Company.company_name ==
-                request.company_name
-            )
-            .first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid company name or password",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
 
-        if company:
-
-            user = (
-                query
-                .filter(
-                    User.email == request.email,
-                    User.company_id == company.id
-                )
-                .first()
-            )
-
-        else:
-            user = None
-
-    else:
-
-        user = (
-            query
-            .filter(
-                User.email == request.email
-            )
-            .first()
+    # Find user belonging to company
+    user = (
+        db.query(User)
+        .filter(
+            User.company_id == company.id
         )
+        .order_by(User.id.asc())
+        .first()
+    )
 
-        company = (
-            db.query(Company)
-            .filter(
-                Company.id == user.company_id
-            )
-            .first()
-            if user
-            else None
-        )
-
+    # Verify password
     if (
         not user
-        or not company
         or not verify_password(
             request.password,
             user.password_hash
         )
     ):
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email, password, or company selection",
+            detail="Invalid company name or password",
             headers={
                 "WWW-Authenticate": "Bearer"
             },
@@ -162,8 +144,7 @@ def login(
 
 
 # ============================================================
-# ONE-CLICK DEMO LOGIN
-# IBM + NOVATECH + LAVENDER
+# DISABLE ONE CLICK LOGIN
 # ============================================================
 
 @router.post(
@@ -175,58 +156,12 @@ def demo_login(
     db: Session = Depends(get_db)
 ):
 
-    config = LOGIN_CONFIG.get(
-        request.company_name
-    )
-
-    if not config:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Demo company not found"
-        )
-
-    if config["requires_credentials"]:
-
-        raise HTTPException(
-            status_code=403,
-            detail="This company requires email and password"
-        )
-
-    company = (
-        db.query(Company)
-        .filter(
-            Company.company_name ==
-            request.company_name
-        )
-        .first()
-    )
-
-    if not company:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Company data is not available"
-        )
-
-    user = (
-        db.query(User)
-        .filter(
-            User.company_id == company.id
-        )
-        .first()
-    )
-
-    if not user:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Demo user is not available"
-        )
-
-    return _token_response(
-        user,
-        company
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=(
+            "One-click company login is disabled. "
+            "Select a company and enter its password."
+        ),
     )
 
 
@@ -239,48 +174,96 @@ def demo_login(
     response_model=UserOut
 )
 def get_me(
-    current_user: User =
-        Depends(get_current_user),
-
-    db: Session =
-        Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
 
     company = (
         db.query(Company)
         .filter(
-            Company.id ==
-            current_user.company_id
+            Company.id == current_user.company_id
         )
         .first()
     )
 
     return UserOut(
-
         id=current_user.id,
-
         name=current_user.name,
-
         email=current_user.email,
-
         role=current_user.role,
-
         company_id=current_user.company_id,
-
         company_name=(
             company.company_name
             if company
             else ""
-        ),
+        )
     )
 
 
 # ============================================================
-# COMPANY LIST
+# CHANGE COMPANY PASSWORD
+# ============================================================
+
+@router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    # Check current password
+    if not verify_password(
+        request.current_password,
+        current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    # Remove accidental spaces
+    new_password = request.new_password.strip()
+
+    # Minimum password length
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must contain at least 8 characters"
+        )
+
+    # Prevent same password
+    if verify_password(
+        new_password,
+        current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password"
+        )
+
+    # Hash the new password
+    new_password_hash = get_password_hash(
+        new_password
+    )
+
+    # Save only hash in database
+    current_user.password_hash = new_password_hash
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "message": "Company password updated successfully"
+    }
+
+
+# ============================================================
+# COMPANY LIST FOR LOGIN DROPDOWN
 # ============================================================
 
 @router.get("/companies")
-def list_demo_companies(
+def list_companies(
     db: Session = Depends(get_db)
 ):
 
@@ -295,13 +278,11 @@ def list_demo_companies(
 
     companies = sorted(
         companies,
-        key=lambda company:
-            ordered_names.index(
-                company.company_name
-            )
-            if company.company_name
-            in ordered_names
+        key=lambda company: (
+            ordered_names.index(company.company_name)
+            if company.company_name in ordered_names
             else 99
+        )
     )
 
     result = []
@@ -316,35 +297,12 @@ def list_demo_companies(
             continue
 
         result.append({
-
-            "id":
-                company.id,
-
-            "company_name":
-                company.company_name,
-
-            "industry":
-                company.industry,
-
-            "requires_credentials":
-                config[
-                    "requires_credentials"
-                ],
-
-            "login_label":
-                config[
-                    "login_label"
-                ],
-
-            "dataset_label":
-                config[
-                    "dataset_label"
-                ],
-
-            "demo_email":
-                config.get(
-                    "demo_email"
-                ),
+            "id": company.id,
+            "company_name": company.company_name,
+            "industry": company.industry,
+            "requires_credentials": True,
+            "login_label": config["login_label"],
+            "dataset_label": config["dataset_label"],
         })
 
     return result

@@ -11,7 +11,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-[#FCFAFF]">
+    <div className="flex min-h-screen bg-[#FCFAFF] relative overflow-hidden">
       <Sidebar onLogout={logout} />
 
       <div className="flex-1 flex flex-col min-w-0">

@@ -104,13 +104,7 @@ def get_dashboard_summary(
     ]
 
     # Top Risk Factors from best model
-    top_factors = best_model.feature_importance_json if (best_model and best_model.feature_importance_json) else [
-        {"feature": "OverTime", "importance": 0.35},
-        {"feature": "JobSatisfaction", "importance": 0.28},
-        {"feature": "MonthlyIncome", "importance": 0.18},
-        {"feature": "WorkLifeBalance", "importance": 0.12},
-        {"feature": "YearsAtCompany", "importance": 0.07}
-    ]
+    top_factors = best_model.feature_importance_json if (best_model and best_model.feature_importance_json) else []
 
     return DashboardSummaryOut(
         total_employees=total_employees,
@@ -118,8 +112,8 @@ def get_dashboard_summary(
         medium_risk_count=med_risk,
         low_risk_count=low_risk,
         attrition_rate=attrition_rate,
-        best_model_name=best_model.model_name if best_model else "Random Forest",
-        best_model_accuracy=round(best_model.accuracy * 100, 1) if best_model else 89.6,
+        best_model_name=best_model.model_name if best_model else "No trained model",
+        best_model_accuracy=round(best_model.accuracy * 100, 1) if best_model else None,
         risk_distribution=risk_dist,
         department_attrition=dept_attrition,
         job_satisfaction_attrition=job_sat_data,

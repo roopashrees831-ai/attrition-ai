@@ -1,266 +1,1311 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { authApi } from '../services/api';
+import React, { useState } from 'react';
+
 import {
-  ArrowRight,
-  BarChart3,
+  BrainCircuit,
   Building2,
-  Database,
-  KeyRound,
-  Lock,
-  Mail,
+  LockKeyhole,
+  Eye,
+  EyeOff,
+  ArrowRight,
   ShieldCheck,
-  Sparkles,
-  UserCheck,
-  Zap,
+  Database,
+  BarChart3,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
-interface DemoCompany {
+/* =========================================================
+   API
+========================================================= */
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://127.0.0.1:8000/api/v1';
+
+/* =========================================================
+   COMPANY CONFIG
+========================================================= */
+
+type Company = {
   id: number;
-  company_name: string;
+  name: string;
+  shortName: string;
   industry: string;
-  requires_credentials: boolean;
-  login_label: string;
-  dataset_label: string;
-  demo_email?: string | null;
-}
+  dataset: string;
+  loginId: string;
+};
+
+const COMPANIES: Company[] = [
+  {
+    id: 1,
+    name: 'IBM HR Analytics',
+    shortName: 'IBM',
+    industry: 'Technology & Research',
+    dataset: 'IBM HR Employee Attrition Dataset',
+    loginId: 'IBM HR Analytics',
+  },
+
+  {
+    id: 2,
+    name: 'NovaTech Solutions',
+    shortName: 'NT',
+    industry: 'Enterprise Technology',
+    dataset: 'Saudi Employee Attrition Dataset',
+    loginId: 'NovaTech Solutions',
+  },
+
+  {
+    id: 3,
+    name: 'Lavender Systems',
+    shortName: 'LS',
+    industry: 'Business Services',
+    dataset: 'Indian HR Attrition Dataset',
+    loginId: 'Lavender Systems',
+  },
+];
+
+/* =========================================================
+   LOGIN
+========================================================= */
 
 export const Login: React.FC = () => {
-  const navigate = useNavigate();
-  const { login, demoLogin } = useAuth();
-  const [companies, setCompanies] = useState<DemoCompany[]>([]);
-  const [companyName, setCompanyName] = useState('');
-  const [email, setEmail] = useState('');
+  const [selectedCompanyId, setSelectedCompanyId] =
+    useState<number>(1);
+
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const data = await authApi.getDemoCompanies();
-        setCompanies(data);
-        if (data.length > 0) {
-          setCompanyName(data[0].company_name);
-        }
-      } catch (err) {
-        console.error('Failed to load companies:', err);
-        setError('Could not load company datasets. Make sure the backend is running.');
-      }
-    };
-    fetchCompanies();
-  }, []);
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  const selectedCompany = useMemo(
-    () => companies.find((company) => company.company_name === companyName),
-    [companies, companyName]
-  );
+  const [loading, setLoading] =
+    useState(false);
 
-  const selectCompany = (company: DemoCompany) => {
-    setCompanyName(company.company_name);
-    setError('');
+  const [loginError, setLoginError] =
+    useState('');
+
+  const selectedCompany =
+    COMPANIES.find(
+      (company) =>
+        company.id === selectedCompanyId,
+    ) || COMPANIES[0];
+
+  /* =======================================================
+     COMPANY SELECT
+  ======================================================= */
+
+  const selectCompany = (
+    companyId: number,
+  ) => {
+    setSelectedCompanyId(companyId);
     setPassword('');
-    setEmail(company.requires_credentials ? company.demo_email || '' : '');
+    setLoginError('');
+    setShowPassword(false);
   };
 
-  const handleContinue = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!selectedCompany) return;
+  /* =======================================================
+     LOGIN REQUEST
+  ======================================================= */
 
-    setLoading(true);
-    setError('');
+  const handleLogin = async (
+    event: React.FormEvent,
+  ) => {
+    event.preventDefault();
+
+    setLoginError('');
+
+    if (!password.trim()) {
+      setLoginError(
+        'Please enter your password.',
+      );
+      return;
+    }
+
     try {
-      if (selectedCompany.requires_credentials) {
-        await login(email, password, selectedCompany.company_name);
-      } else {
-        await demoLogin(selectedCompany.company_name);
+      setLoading(true);
+
+      const response = await fetch(
+        `${API_BASE}/auth/login`,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body: JSON.stringify({
+            company_name:
+              selectedCompany.name,
+            password,
+          }),
+        },
+      );
+
+      let data: any = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
       }
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Unable to sign in. Please try again.');
+
+      /* ================================================
+         LOGIN ERROR
+      ================================================ */
+
+      if (!response.ok) {
+        let message =
+          'Login failed. Please check your password.';
+
+        if (
+          typeof data?.detail === 'string'
+        ) {
+          message = data.detail;
+        } else if (
+          typeof data?.message === 'string'
+        ) {
+          message = data.message;
+        } else if (
+          response.status === 401
+        ) {
+          message =
+            'Incorrect password for the selected company.';
+        }
+
+        setLoginError(message);
+        return;
+      }
+
+      /* ================================================
+         GET TOKEN
+      ================================================ */
+
+      const token =
+        data?.access_token ||
+        data?.token ||
+        '';
+
+      if (!token) {
+        setLoginError(
+          'Login succeeded but no authentication token was returned.',
+        );
+        return;
+      }
+
+      /* ================================================
+         IMPORTANT AUTH TOKEN
+
+         AuthContext + API interceptor use
+         "attrition_token".
+      ================================================ */
+
+      localStorage.setItem(
+        'attrition_token',
+        token,
+      );
+
+      localStorage.setItem(
+        'access_token',
+        token,
+      );
+
+      localStorage.setItem(
+        'token',
+        token,
+      );
+
+      /* ================================================
+         COMPANY INFORMATION
+      ================================================ */
+
+      localStorage.setItem(
+        'company_name',
+        selectedCompany.name,
+      );
+
+      localStorage.setItem(
+        'company_id',
+        String(
+          data?.company_id ??
+            selectedCompany.id,
+        ),
+      );
+
+      if (data?.company) {
+        localStorage.setItem(
+          'company',
+          JSON.stringify(
+            data.company,
+          ),
+        );
+      }
+
+      if (data?.user) {
+        localStorage.setItem(
+          'user',
+          JSON.stringify(
+            data.user,
+          ),
+        );
+      }
+
+      setPassword('');
+      setLoginError('');
+
+      /*
+        Full reload lets AuthContext start again
+        and read attrition_token correctly.
+      */
+
+      window.location.replace(
+        '/dashboard',
+      );
+    } catch (error) {
+      console.error(
+        'Login error:',
+        error,
+      );
+
+      setLoginError(
+        'Unable to connect to the backend. Please make sure the backend is running.',
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  /* =======================================================
+     PAGE
+  ======================================================= */
+
   return (
-    <div className="min-h-screen w-full bg-[#090612] neural-bg flex items-center justify-center p-5 lg:p-8 relative overflow-hidden select-none">
-      <div className="absolute -top-48 -left-24 h-[32rem] w-[32rem] rounded-full bg-fuchsia-700/15 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-56 -right-24 h-[36rem] w-[36rem] rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 left-1/2 h-72 w-72 rounded-full bg-purple-400/10 blur-3xl pointer-events-none" />
+    <div
+      className="
+        h-screen
+        w-full
+        overflow-hidden
+        bg-[#06030B]
+        text-white
+        relative
+      "
+    >
+      {/* =================================================
+          BACKGROUND EFFECTS
+      ================================================= */}
 
-      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-7 items-stretch z-10">
-        <section className="lg:col-span-5 rounded-[2rem] border border-[#3A245C] bg-[#120B20]/80 backdrop-blur-xl p-7 lg:p-9 shadow-[0_24px_80px_rgba(25,10,45,0.5)] flex flex-col justify-between min-h-[650px]">
+      <div
+        className="
+          absolute
+          inset-0
+          overflow-hidden
+          pointer-events-none
+        "
+      >
+        <div
+          className="
+            absolute
+            -top-[220px]
+            -left-[180px]
+            w-[600px]
+            h-[600px]
+            rounded-full
+            bg-violet-700/10
+            blur-[150px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            -bottom-[260px]
+            right-[2%]
+            w-[650px]
+            h-[650px]
+            rounded-full
+            bg-fuchsia-700/[0.08]
+            blur-[160px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            top-[35%]
+            left-[38%]
+            w-[420px]
+            h-[420px]
+            rounded-full
+            bg-indigo-600/10
+            blur-[130px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            inset-0
+            opacity-[0.025]
+            bg-[linear-gradient(rgba(255,255,255,.4)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.4)_1px,transparent_1px)]
+            bg-[size:42px_42px]
+          "
+        />
+      </div>
+
+      {/* =================================================
+          MAIN
+      ================================================= */}
+
+      <div
+        className="
+          relative
+          z-10
+          h-screen
+          grid
+          lg:grid-cols-[0.92fr_1.08fr]
+        "
+      >
+        {/* =================================================
+            LEFT
+        ================================================= */}
+
+        <div
+          className="
+            hidden
+            lg:flex
+            flex-col
+            justify-between
+            px-10
+            xl:px-14
+            py-7
+            border-r
+            border-white/[0.06]
+            relative
+          "
+        >
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-950/70 border border-violet-400/30 text-violet-200 text-[11px] font-mono mb-8">
-              <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
-              MULTI-COMPANY ATTRITION INTELLIGENCE
-            </div>
+            {/* BRAND */}
 
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 via-violet-500 to-purple-700 p-[1px] shadow-[0_0_35px_rgba(192,132,252,0.28)]">
-                <div className="w-full h-full rounded-[15px] bg-[#090612] flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-violet-200" />
-                </div>
+            <div
+              className="
+                flex
+                items-center
+                gap-3
+              "
+            >
+              <div
+                className="
+                  w-10
+                  h-10
+                  rounded-xl
+                  flex
+                  items-center
+                  justify-center
+                  border
+                  border-violet-400/30
+                  bg-gradient-to-br
+                  from-violet-600/25
+                  to-fuchsia-600/20
+                  shadow-[0_0_30px_rgba(139,92,246,.16)]
+                "
+              >
+                <BrainCircuit
+                  className="
+                    w-5
+                    h-5
+                    text-violet-300
+                  "
+                />
               </div>
+
               <div>
-                <h1 className="text-3xl font-black text-white tracking-tight font-['Outfit']">
-                  ATTRITION <span className="text-violet-300">AI</span>
-                </h1>
-                <p className="text-xs text-violet-300/70 font-mono">Predict • Prevent • Retain</p>
-              </div>
-            </div>
-
-            <h2 className="text-4xl lg:text-5xl font-black text-white leading-[1.05] font-['Outfit'] max-w-md">
-              One model experience. <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-fuchsia-300">Three company datasets.</span>
-            </h2>
-            <p className="text-sm text-slate-400 leading-6 mt-5 max-w-lg">
-              Compare employee attrition behavior across IBM HR Analytics and two IBM-schema-compatible workforce datasets with isolated dashboards, predictions and ML metrics.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-3 mt-8">
-            {[
-              { icon: Database, label: '3 isolated', value: 'Datasets' },
-              { icon: BarChart3, label: 'Per company', value: 'ML Insights' },
-              { icon: ShieldCheck, label: 'One secure', value: 'Login Flow' },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.value} className="rounded-2xl bg-[#1A1030]/80 border border-[#3A245C] p-4">
-                  <Icon className="w-5 h-5 text-violet-300 mb-3" />
-                  <p className="text-[11px] text-slate-500">{item.label}</p>
-                  <p className="text-sm font-bold text-violet-100">{item.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="lg:col-span-7 glass-card rounded-[2rem] p-6 lg:p-8 border-[#3A245C] shadow-[0_24px_80px_rgba(25,10,45,0.5)] min-h-[650px]">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-            <div>
-              <p className="text-[11px] font-mono text-violet-300 uppercase tracking-[0.2em]">Workspace Access</p>
-              <h2 className="text-2xl font-extrabold text-white font-['Outfit'] mt-1">Choose a company</h2>
-              <p className="text-xs text-slate-400 mt-1">Each selection loads its own workforce dataset and trained model.</p>
-            </div>
-            <div className="inline-flex items-center gap-2 text-[11px] text-violet-200 bg-violet-950/60 border border-violet-400/20 rounded-full px-3 py-1.5 w-fit">
-              <UserCheck className="w-3.5 h-3.5" />
-              Tenant-isolated demo
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            {companies.map((company, index) => {
-              const isSelected = company.company_name === companyName;
-              return (
-                <button
-                  key={company.id}
-                  type="button"
-                  onClick={() => selectCompany(company)}
-                  className={`relative text-left rounded-2xl border p-4 transition-all duration-200 min-h-[156px] ${
-                    isSelected
-                      ? 'border-violet-400/70 bg-gradient-to-b from-violet-900/45 to-fuchsia-950/30 shadow-[0_0_30px_rgba(167,139,250,0.12)]'
-                      : 'border-[#3A245C] bg-[#1A1030]/65 hover:border-violet-400/40 hover:bg-[#21133B]'
-                  }`}
+                <div
+                  className="
+                    text-lg
+                    font-black
+                    tracking-[0.08em]
+                  "
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isSelected ? 'bg-violet-400/20 text-violet-200' : 'bg-[#090612] text-slate-400'}`}>
-                      <Building2 className="w-4.5 h-4.5" />
-                    </div>
-                    <span className="text-[10px] font-mono text-violet-300/70">0{index + 1}</span>
-                  </div>
-                  <p className="text-sm font-bold text-white mt-4 leading-4">{company.company_name}</p>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-4">{company.dataset_label}</p>
-                  <div className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-violet-200">
-                    {company.requires_credentials ? <Lock className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
-                    {company.requires_credentials ? 'Email + password' : 'One-click demo'}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  ATTRITION
 
-          {selectedCompany && (
-            <div className="rounded-2xl border border-[#3A245C] bg-[#0D0818]/70 p-5 lg:p-6">
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div>
-                  <p className="text-xs text-violet-300 font-semibold">Selected workspace</p>
-                  <h3 className="text-xl font-bold text-white font-['Outfit'] mt-0.5">{selectedCompany.company_name}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{selectedCompany.industry}</p>
+                  <span
+                    className="
+                      text-violet-400
+                      ml-1
+                    "
+                  >
+                    AI
+                  </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${selectedCompany.requires_credentials ? 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-400/30' : 'bg-violet-950/60 text-violet-200 border-violet-400/30'}`}>
-                  {selectedCompany.requires_credentials ? 'SECURE COMPANY' : 'DEMO ACCESS'}
-                </span>
+
+                <div
+                  className="
+                    text-[9px]
+                    uppercase
+                    tracking-[0.25em]
+                    text-[#7F7390]
+                    mt-0.5
+                  "
+                >
+                  Predict • Prevent • Retain
+                </div>
+              </div>
+            </div>
+
+            {/* HERO */}
+
+            <div
+              className="
+                mt-10
+                max-w-xl
+              "
+            >
+              <div
+                className="
+                  inline-flex
+                  items-center
+                  gap-2
+                  px-3
+                  py-1.5
+                  rounded-full
+                  border
+                  border-violet-500/20
+                  bg-violet-500/[0.07]
+                  text-[9px]
+                  font-black
+                  uppercase
+                  tracking-[0.16em]
+                  text-violet-300
+                "
+              >
+                <BrainCircuit
+                  className="
+                    w-3.5
+                    h-3.5
+                  "
+                />
+
+                Multi-Company Attrition
+                Intelligence
               </div>
 
-              {error && (
-                <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-400/30 text-rose-200 text-xs">
-                  {error}
+              <h1
+                className="
+                  mt-5
+                  text-[44px]
+                  xl:text-[54px]
+                  leading-[1.02]
+                  font-black
+                  tracking-[-0.04em]
+                "
+              >
+                One intelligence
+                <br />
+
+                experience.
+                <br />
+
+                <span
+                  className="
+                    text-transparent
+                    bg-clip-text
+                    bg-gradient-to-r
+                    from-violet-400
+                    via-purple-400
+                    to-fuchsia-400
+                  "
+                >
+                  Three company
+                  <br />
+                  datasets.
+                </span>
+              </h1>
+
+              <p
+                className="
+                  mt-4
+                  text-[13px]
+                  leading-6
+                  text-[#9589A2]
+                  max-w-lg
+                "
+              >
+                Explore isolated workforce
+                datasets, trained
+                machine-learning models,
+                employee risk predictions
+                and company-specific
+                analytics through one secure
+                interface.
+              </p>
+            </div>
+          </div>
+
+          {/* FEATURES */}
+
+          <div
+            className="
+              grid
+              grid-cols-3
+              gap-3
+            "
+          >
+            <FeatureBox
+              icon={
+                <Database
+                  className="
+                    w-4
+                    h-4
+                  "
+                />
+              }
+              top="3 isolated"
+              bottom="Datasets"
+            />
+
+            <FeatureBox
+              icon={
+                <BarChart3
+                  className="
+                    w-4
+                    h-4
+                  "
+                />
+              }
+              top="Per company"
+              bottom="ML Insights"
+            />
+
+            <FeatureBox
+              icon={
+                <ShieldCheck
+                  className="
+                    w-4
+                    h-4
+                  "
+                />
+              }
+              top="Secure"
+              bottom="Login Flow"
+            />
+          </div>
+        </div>
+
+        {/* =================================================
+            RIGHT
+        ================================================= */}
+
+        <div
+          className="
+            flex
+            items-center
+            justify-center
+            px-5
+            sm:px-7
+            py-5
+            h-screen
+            overflow-y-auto
+          "
+        >
+          <div
+            className="
+              w-full
+              max-w-[780px]
+            "
+          >
+            {/* HEADER */}
+
+            <div
+              className="
+                mb-3
+              "
+            >
+              <div
+                className="
+                  text-[10px]
+                  uppercase
+                  tracking-[0.2em]
+                  font-black
+                  text-violet-400
+                "
+              >
+                Workspace Access
+              </div>
+
+              <h2
+                className="
+                  mt-1.5
+                  text-2xl
+                  font-black
+                  tracking-tight
+                "
+              >
+                Choose a company
+              </h2>
+
+              <p
+                className="
+                  mt-1
+                  text-[12px]
+                  text-[#8E8199]
+                "
+              >
+                Each company opens its own
+                workforce data and trained
+                model.
+              </p>
+            </div>
+
+            {/* =================================================
+                COMPANY CARDS
+            ================================================= */}
+
+            <div
+              className="
+                grid
+                md:grid-cols-3
+                gap-3
+              "
+            >
+              {COMPANIES.map(
+                (company, index) => {
+                  const selected =
+                    company.id ===
+                    selectedCompanyId;
+
+                  return (
+                    <button
+                      key={company.id}
+                      type="button"
+                      onClick={() =>
+                        selectCompany(
+                          company.id,
+                        )
+                      }
+                      className={`
+                        relative
+                        text-left
+                        rounded-2xl
+                        border
+                        p-3
+                        transition-all
+                        duration-200
+
+                        ${
+                          selected
+                            ? `
+                              border-violet-400/60
+                              bg-gradient-to-br
+                              from-violet-700/20
+                              to-fuchsia-700/10
+                              shadow-[0_0_28px_rgba(139,92,246,.13)]
+                            `
+                            : `
+                              border-[#302039]
+                              bg-[#100815]
+                              hover:border-violet-500/35
+                              hover:bg-[#150B1C]
+                            `
+                        }
+                      `}
+                    >
+                      <div
+                        className="
+                          flex
+                          justify-between
+                          items-start
+                        "
+                      >
+                        <div
+                          className={`
+                            w-8
+                            h-8
+                            rounded-lg
+                            flex
+                            items-center
+                            justify-center
+                            border
+
+                            ${
+                              selected
+                                ? `
+                                  border-violet-400/35
+                                  bg-violet-500/15
+                                  text-violet-300
+                                `
+                                : `
+                                  border-[#3C2748]
+                                  bg-[#190E20]
+                                  text-[#A483B5]
+                                `
+                            }
+                          `}
+                        >
+                          <Building2
+                            className="
+                              w-4
+                              h-4
+                            "
+                          />
+                        </div>
+
+                        <span
+                          className="
+                            text-[9px]
+                            font-black
+                            tracking-[0.12em]
+                            text-[#6F5F7A]
+                          "
+                        >
+                          0{index + 1}
+                        </span>
+                      </div>
+
+                      <div
+                        className="
+                          mt-2.5
+                          text-[13px]
+                          font-black
+                          text-white
+                        "
+                      >
+                        {company.name}
+                      </div>
+
+                      <div
+                        className="
+                          mt-1.5
+                          text-[9px]
+                          leading-4
+                          text-[#807187]
+                          min-h-[32px]
+                        "
+                      >
+                        {company.dataset}
+                      </div>
+
+                      <div
+                        className="
+                          mt-2.5
+                          text-[9px]
+                          font-bold
+                          text-violet-300
+                        "
+                      >
+                        Company password
+                      </div>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            {/* =================================================
+                LOGIN PANEL
+            ================================================= */}
+
+            <form
+              onSubmit={handleLogin}
+              className="
+                mt-3
+                rounded-[22px]
+                border
+                border-[#352141]
+                bg-[#0E0713]/95
+                p-4
+                sm:p-5
+                shadow-[0_25px_70px_rgba(0,0,0,.30)]
+              "
+            >
+              {/* SELECTED WORKSPACE */}
+
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  gap-4
+                  pb-3
+                  border-b
+                  border-white/[0.06]
+                "
+              >
+                <div>
+                  <div
+                    className="
+                      text-[9px]
+                      uppercase
+                      tracking-[0.16em]
+                      font-black
+                      text-violet-400
+                    "
+                  >
+                    Selected Workspace
+                  </div>
+
+                  <div
+                    className="
+                      mt-1
+                      text-[16px]
+                      font-black
+                      text-white
+                    "
+                  >
+                    {selectedCompany.name}
+                  </div>
+
+                  <div
+                    className="
+                      mt-0.5
+                      text-[10px]
+                      text-[#887890]
+                    "
+                  >
+                    {
+                      selectedCompany.industry
+                    }
+                  </div>
+                </div>
+
+                <div
+                  className="
+                    inline-flex
+                    items-center
+                    gap-1.5
+                    rounded-full
+                    px-2.5
+                    py-1.5
+                    border
+                    border-violet-500/25
+                    bg-violet-500/[0.08]
+                    text-[9px]
+                    font-black
+                    text-violet-300
+                    uppercase
+                    tracking-wider
+                    shrink-0
+                  "
+                >
+                  <ShieldCheck
+                    className="
+                      w-3
+                      h-3
+                    "
+                  />
+
+                  Secure Access
+                </div>
+              </div>
+
+              {/* INFO */}
+
+              <div
+                className="
+                  mt-3
+                  rounded-xl
+                  border
+                  border-violet-500/15
+                  bg-violet-500/[0.05]
+                  px-3
+                  py-2.5
+                  flex
+                  gap-2.5
+                  items-start
+                "
+              >
+                <ShieldCheck
+                  className="
+                    w-4
+                    h-4
+                    mt-0.5
+                    shrink-0
+                    text-violet-400
+                  "
+                />
+
+                <div>
+                  <div
+                    className="
+                      text-[11px]
+                      font-bold
+                      text-[#D7C9DE]
+                    "
+                  >
+                    Secure company access
+                  </div>
+
+                  <div
+                    className="
+                      mt-0.5
+                      text-[10px]
+                      leading-4
+                      text-[#817386]
+                    "
+                  >
+                    Enter the password
+                    assigned to this company
+                    workspace.
+                  </div>
+                </div>
+              </div>
+
+              {/* =================================================
+                  INPUTS
+              ================================================= */}
+
+              <div
+                className="
+                  grid
+                  md:grid-cols-2
+                  gap-3
+                  mt-3
+                "
+              >
+                {/* COMPANY */}
+
+                <div>
+                  <label
+                    className="
+                      block
+                      mb-1.5
+                      text-[10px]
+                      font-bold
+                      text-[#B7A8BE]
+                    "
+                  >
+                    Company
+                  </label>
+
+                  <div className="relative">
+                    <Building2
+                      className="
+                        absolute
+                        left-3.5
+                        top-3.5
+                        w-4
+                        h-4
+                        text-violet-400
+                      "
+                    />
+
+                    <input
+                      value={
+                        selectedCompany.loginId
+                      }
+                      readOnly
+                      className="
+                        w-full
+                        h-11
+                        rounded-xl
+                        border
+                        border-[#33213E]
+                        bg-[#09050D]
+                        pl-10
+                        pr-4
+                        text-[12px]
+                        font-semibold
+                        text-[#BCAFC3]
+                        outline-none
+                        cursor-default
+                      "
+                    />
+                  </div>
+                </div>
+
+                {/* PASSWORD */}
+
+                <div>
+                  <label
+                    className="
+                      block
+                      mb-1.5
+                      text-[10px]
+                      font-bold
+                      text-[#B7A8BE]
+                    "
+                  >
+                    Password
+                  </label>
+
+                  <div className="relative">
+                    <LockKeyhole
+                      className={`
+                        absolute
+                        left-3.5
+                        top-3.5
+                        w-4
+                        h-4
+
+                        ${
+                          loginError
+                            ? 'text-red-400'
+                            : 'text-violet-400'
+                        }
+                      `}
+                    />
+
+                    <input
+                      type={
+                        showPassword
+                          ? 'text'
+                          : 'password'
+                      }
+                      value={password}
+                      autoComplete="current-password"
+                      onChange={(event) => {
+                        setPassword(
+                          event.target.value,
+                        );
+
+                        if (loginError) {
+                          setLoginError('');
+                        }
+                      }}
+                      placeholder="Enter password"
+                      className={`
+                        w-full
+                        h-11
+                        rounded-xl
+                        bg-[#09050D]
+                        pl-10
+                        pr-11
+                        text-[12px]
+                        text-white
+                        outline-none
+                        border
+                        transition-all
+
+                        ${
+                          loginError
+                            ? `
+                              border-red-500/70
+                              focus:border-red-400
+                              shadow-[0_0_0_3px_rgba(239,68,68,.06)]
+                            `
+                            : `
+                              border-[#33213E]
+                              focus:border-violet-500/70
+                              focus:shadow-[0_0_0_3px_rgba(139,92,246,.06)]
+                            `
+                        }
+                      `}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPassword(
+                          (previous) =>
+                            !previous,
+                        )
+                      }
+                      aria-label={
+                        showPassword
+                          ? 'Hide password'
+                          : 'Show password'
+                      }
+                      className="
+                        absolute
+                        right-3.5
+                        top-3.5
+                        text-[#75667D]
+                        hover:text-violet-300
+                        transition
+                      "
+                    >
+                      {showPassword ? (
+                        <EyeOff
+                          className="
+                            w-4
+                            h-4
+                          "
+                        />
+                      ) : (
+                        <Eye
+                          className="
+                            w-4
+                            h-4
+                          "
+                        />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* =================================================
+                  ERROR
+              ================================================= */}
+
+              {loginError && (
+                <div
+                  className="
+                    mt-3
+                    flex
+                    items-center
+                    gap-2.5
+                    rounded-xl
+                    border
+                    border-red-500/35
+                    bg-red-500/[0.08]
+                    px-3
+                    py-2.5
+                    text-[11px]
+                    text-red-300
+                  "
+                >
+                  <AlertCircle
+                    className="
+                      w-4
+                      h-4
+                      shrink-0
+                      text-red-400
+                    "
+                  />
+
+                  <span className="font-semibold">
+                    {loginError}
+                  </span>
                 </div>
               )}
 
-              <form onSubmit={handleContinue} className="space-y-4">
-                {selectedCompany.requires_credentials ? (
+              {/* =================================================
+                  CONTINUE
+              ================================================= */}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="
+                  mt-3
+                  w-full
+                  min-h-[52px]
+                  rounded-xl
+                  flex
+                  items-center
+                  justify-center
+                  gap-3
+                  bg-gradient-to-r
+                  from-violet-600
+                  via-purple-600
+                  to-fuchsia-600
+                  text-white
+                  text-sm
+                  font-black
+                  hover:brightness-110
+                  active:scale-[0.995]
+                  disabled:opacity-60
+                  disabled:cursor-not-allowed
+                  transition-all
+                  shadow-[0_12px_35px_rgba(139,92,246,.18)]
+                "
+              >
+                {loading ? (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-violet-200 mb-2">Company email</label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-violet-300/60 absolute left-3.5 top-3.5" />
-                          <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(event) => setEmail(event.target.value)}
-                            className="w-full bg-[#1A1030] border border-[#3A245C] rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10"
-                            placeholder="hr@company.com"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-violet-200 mb-2">Password</label>
-                        <div className="relative">
-                          <KeyRound className="w-4 h-4 text-violet-300/60 absolute left-3.5 top-3.5" />
-                          <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            className="w-full bg-[#1A1030] border border-[#3A245C] rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10"
-                            placeholder="Enter password"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-violet-950/30 border border-violet-400/20 px-4 py-3 text-[11px] text-slate-400">
-                      Demo credentials: <span className="text-violet-200 font-mono">hr@lavendersystems.com</span> / <span className="text-violet-200 font-mono">Lavender@2026</span>
-                    </div>
+                    <Loader2
+                      className="
+                        w-4
+                        h-4
+                        animate-spin
+                      "
+                    />
+
+                    Verifying Access...
                   </>
                 ) : (
-                  <div className="rounded-xl bg-violet-950/30 border border-violet-400/20 px-4 py-4 flex items-start gap-3">
-                    <Zap className="w-5 h-5 text-violet-300 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-violet-100">No credentials needed for this demo company.</p>
-                      <p className="text-[11px] text-slate-400 mt-1">Click continue to open the company-specific dashboard, employees, predictions and model performance.</p>
-                    </div>
-                  </div>
-                )}
+                  <>
+                    Continue
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white font-bold text-xs shadow-[0_0_30px_rgba(167,139,250,0.25)] hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? 'Opening workspace...' : selectedCompany.login_label}
-                  {!loading && <ArrowRight className="w-4 h-4" />}
-                </button>
-              </form>
-            </div>
-          )}
-        </section>
+                    <ArrowRight
+                      className="
+                        w-4
+                        h-4
+                      "
+                    />
+                  </>
+                )}
+              </button>
+
+              {/* FOOTER */}
+
+              <div
+                className="
+                  mt-3
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  text-[9px]
+                  text-[#6F6175]
+                "
+              >
+                <LockKeyhole
+                  className="
+                    w-3
+                    h-3
+                  "
+                />
+
+                Company data is isolated and
+                protected by authenticated
+                access.
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
+
+/* =========================================================
+   FEATURE BOX
+========================================================= */
+
+const FeatureBox: React.FC<{
+  icon: React.ReactNode;
+  top: string;
+  bottom: string;
+}> = ({
+  icon,
+  top,
+  bottom,
+}) => {
+  return (
+    <div
+      className="
+        rounded-xl
+        border
+        border-[#2E1E38]
+        bg-[#0E0713]/80
+        p-3
+      "
+    >
+      <div className="text-violet-400">
+        {icon}
+      </div>
+
+      <div
+        className="
+          mt-2
+          text-[9px]
+          text-[#77687E]
+        "
+      >
+        {top}
+      </div>
+
+      <div
+        className="
+          mt-0.5
+          text-[11px]
+          font-black
+          text-[#D8CFDD]
+        "
+      >
+        {bottom}
+      </div>
+    </div>
+  );
+};
+
+export default Login;

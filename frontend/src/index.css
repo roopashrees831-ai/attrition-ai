@@ -83,3 +83,349 @@
 .animate-pulse-glow {
   animation: pulseGlow 4s ease-in-out infinite;
 }
+
+
+/* Decorative 3D AI orb — visual only, no interaction or layout changes */
+.ai-orb-3d {
+  position: fixed;
+  right: clamp(18px, 3vw, 52px);
+  bottom: clamp(18px, 4vh, 48px);
+  width: clamp(150px, 17vw, 250px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  perspective: 900px;
+  transform-style: preserve-3d;
+  z-index: 5;
+  opacity: 0.72;
+  filter: saturate(1.1);
+}
+
+.ai-orb-3d--light {
+  opacity: 0.16;
+}
+
+.ai-orb-3d__glow {
+  position: absolute;
+  inset: 14%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.46) 0%, rgba(139, 92, 246, 0.14) 46%, transparent 72%);
+  filter: blur(22px);
+  animation: aiOrbGlow 4.8s ease-in-out infinite;
+}
+
+.ai-orb-3d__core {
+  position: absolute;
+  inset: 27%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255,255,255,0.92), rgba(216,180,254,0.78) 9%, transparent 21%),
+    radial-gradient(circle at 68% 72%, rgba(34,211,238,0.45), transparent 31%),
+    linear-gradient(145deg, rgba(192,132,252,0.96), rgba(109,40,217,0.88) 48%, rgba(49,46,129,0.95));
+  box-shadow:
+    inset -18px -22px 35px rgba(24, 8, 48, 0.42),
+    inset 12px 12px 26px rgba(255,255,255,0.16),
+    0 18px 55px rgba(124,58,237,0.24);
+  transform: translateZ(34px);
+  animation: aiOrbFloat 5.5s ease-in-out infinite;
+}
+
+.ai-orb-3d__shine {
+  position: absolute;
+  width: 30%;
+  height: 16%;
+  left: 22%;
+  top: 19%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.42);
+  filter: blur(5px);
+  transform: rotate(-24deg);
+}
+
+.ai-orb-3d__ring {
+  position: absolute;
+  inset: 18%;
+  border: 1px solid rgba(196,181,253,0.52);
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  box-shadow: 0 0 18px rgba(139,92,246,0.14);
+}
+
+.ai-orb-3d__ring--one {
+  transform: rotateX(68deg) rotateZ(16deg);
+  animation: aiOrbSpinOne 8s linear infinite;
+}
+
+.ai-orb-3d__ring--two {
+  inset: 12%;
+  border-color: rgba(34,211,238,0.34);
+  transform: rotateY(70deg) rotateZ(-18deg);
+  animation: aiOrbSpinTwo 10s linear infinite reverse;
+}
+
+.ai-orb-3d__ring--three {
+  inset: 7%;
+  border-style: dashed;
+  border-color: rgba(244,114,182,0.30);
+  transform: rotateX(48deg) rotateY(38deg);
+  animation: aiOrbSpinThree 13s linear infinite;
+}
+
+.ai-orb-3d__dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 0 14px rgba(196,181,253,0.95);
+  animation: aiOrbDot 3s ease-in-out infinite;
+}
+
+.ai-orb-3d__dot--one { left: 17%; top: 42%; }
+.ai-orb-3d__dot--two { right: 19%; top: 27%; animation-delay: -1s; }
+.ai-orb-3d__dot--three { right: 28%; bottom: 16%; animation-delay: -2s; }
+
+@keyframes aiOrbFloat {
+  0%, 100% { transform: translateZ(34px) translateY(0) rotate(-2deg); }
+  50% { transform: translateZ(48px) translateY(-9px) rotate(3deg); }
+}
+
+@keyframes aiOrbGlow {
+  0%, 100% { transform: scale(0.92); opacity: 0.58; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes aiOrbSpinOne {
+  from { transform: rotateX(68deg) rotateZ(16deg) rotateY(0deg); }
+  to { transform: rotateX(68deg) rotateZ(376deg) rotateY(360deg); }
+}
+
+@keyframes aiOrbSpinTwo {
+  from { transform: rotateY(70deg) rotateZ(-18deg) rotateX(0deg); }
+  to { transform: rotateY(70deg) rotateZ(342deg) rotateX(360deg); }
+}
+
+@keyframes aiOrbSpinThree {
+  from { transform: rotateX(48deg) rotateY(38deg) rotateZ(0deg); }
+  to { transform: rotateX(48deg) rotateY(38deg) rotateZ(360deg); }
+}
+
+@keyframes aiOrbDot {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.35); }
+}
+
+@media (max-width: 768px) {
+  .ai-orb-3d {
+    width: 135px;
+    right: 10px;
+    bottom: 12px;
+    opacity: 0.38;
+  }
+
+  .ai-orb-3d--light {
+    opacity: 0.12;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-orb-3d *,
+  .ai-orb-3d {
+    animation: none !important;
+  }
+}
+
+/* Lightweight 3D-style ML process flow: subtle depth only, no heavy 3D library. */
+.process-flow-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e8dfff;
+  border-radius: 1rem;
+  padding: 1.15rem 1.25rem 1.35rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248,245,255,0.96));
+  box-shadow: 0 10px 30px rgba(91, 33, 182, 0.07);
+}
+
+.process-flow-card::after {
+  content: '';
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -100px;
+  top: -120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.13), transparent 68%);
+  pointer-events: none;
+}
+
+.process-flow-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.process-flow-card__heading h2 {
+  margin: 0.1rem 0 0;
+  color: #2d1b4e;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.process-flow-card__heading > p {
+  margin: 0;
+  max-width: 320px;
+  color: #8a73b5;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.process-flow-card__eyebrow {
+  margin: 0;
+  color: #7c3aed;
+  font-size: 0.62rem;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.process-flow-3d {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);
+  align-items: center;
+  gap: 0.55rem;
+  perspective: 900px;
+}
+
+.process-flow-3d__node {
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.55rem;
+  border: 1px solid rgba(196, 181, 253, 0.78);
+  border-radius: 0.9rem;
+  color: #4c1d95;
+  background: linear-gradient(160deg, #ffffff, #f5f0ff);
+  box-shadow:
+    0 9px 18px rgba(76, 29, 149, 0.09),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+  transform: rotateX(2deg) translateZ(0);
+  animation: processNodeFloat 5.5s ease-in-out infinite;
+}
+
+.process-flow-3d__node:nth-of-type(4n + 1) { animation-delay: -1.2s; }
+.process-flow-3d__node:nth-of-type(4n + 3) { animation-delay: -2.6s; }
+
+.process-flow-3d__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 0.7rem;
+  color: #7c3aed;
+  background: #ede9fe;
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.12);
+}
+
+.process-flow-3d__node span {
+  color: #4b3b67;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.process-flow-3d__connector {
+  position: relative;
+  min-width: 28px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a78bfa;
+}
+
+.process-flow-3d__connector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(167,139,250,0.2), rgba(124,58,237,0.7), rgba(167,139,250,0.2));
+  transform: translateY(-50%);
+}
+
+.process-flow-3d__connector svg {
+  position: relative;
+  margin-left: auto;
+  background: #fbf9ff;
+}
+
+.process-flow-3d__pulse {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7c3aed;
+  box-shadow: 0 0 7px rgba(124, 58, 237, 0.42);
+  transform: translateY(-50%);
+  animation: processDataPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes processNodeFloat {
+  0%, 100% { transform: rotateX(2deg) translateY(0) translateZ(0); }
+  50% { transform: rotateX(2deg) translateY(-3px) translateZ(8px); }
+}
+
+@keyframes processDataPulse {
+  0% { left: 0; opacity: 0; }
+  18% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { left: calc(100% - 8px); opacity: 0; }
+}
+
+@media (max-width: 900px) {
+  .process-flow-card__heading {
+    flex-direction: column;
+  }
+
+  .process-flow-card__heading > p {
+    text-align: left;
+  }
+
+  .process-flow-3d {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .process-flow-3d__node {
+    min-height: 58px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0.65rem 0.85rem;
+    animation-duration: 6.5s;
+  }
+
+  .process-flow-3d__connector {
+    min-width: 0;
+    width: 28px;
+    height: 22px;
+    margin: 0 auto;
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .process-flow-3d__node,
+  .process-flow-3d__pulse {
+    animation: none !important;
+  }
+}

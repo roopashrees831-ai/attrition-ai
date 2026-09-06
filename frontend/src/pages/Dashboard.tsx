@@ -1,268 +1,818 @@
-import React, { useEffect, useState } from 'react';
-import { predictionsApi } from '../services/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+
 import {
-  Users,
   AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  PieChart as PieChartIcon,
   ShieldCheck,
   TrendingUp,
-  BarChart3,
-  PieChart as PieIcon,
-  ArrowRight,
-  Sliders
+  Users
 } from 'lucide-react';
 
 import {
-  PieChart,
-  Pie,
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
-  BarChart,
-  Bar,
   XAxis,
-  YAxis,
-  CartesianGrid
+  YAxis
 } from 'recharts';
 
-import { useNavigate } from 'react-router-dom';
+import { predictionsApi } from '../services/api';
+
+
+// ============================================================
+// TYPES
+// ============================================================
+
+interface DashboardSummary {
+  total_employees: number;
+  high_risk_count: number;
+  medium_risk_count: number;
+  low_risk_count: number;
+  attrition_rate: number;
+
+  best_model_name?: string;
+  best_model_accuracy?: number | null;
+
+  risk_distribution?: any[];
+  department_attrition?: any[];
+
+  job_satisfaction_attrition?: any[];
+  workload_attrition?: any[];
+  top_risk_factors?: any[];
+}
+
+
+// ============================================================
+// DASHBOARD
+// ============================================================
 
 export const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
+  const [summary, setSummary] =
+    useState<DashboardSummary | null>(null);
 
-  const [summary, setSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState('');
+
+
+  // ==========================================================
+  // LOAD DASHBOARD
+  // ==========================================================
 
   useEffect(() => {
-    const fetchDashboard = async () => {
+    const loadDashboard = async () => {
       try {
-        const data = await predictionsApi.getDashboardSummary();
+        setLoading(true);
+        setError('');
+
+        const data =
+          await predictionsApi.getDashboardSummary();
+
         setSummary(data);
       } catch (err) {
-        console.error(err);
-        setError('Unable to load dashboard data.');
+        console.error(
+          'Failed to load dashboard:',
+          err
+        );
+
+        setError(
+          'Unable to load dashboard data.'
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboard();
+    loadDashboard();
   }, []);
+
+
+  // ==========================================================
+  // RISK DISTRIBUTION
+  // ==========================================================
+
+  const riskData = useMemo(() => {
+    if (!summary) {
+      return [];
+    }
+
+    return [
+      {
+        name: 'High Risk',
+        value: Number(
+          summary.high_risk_count || 0
+        ),
+        color: '#FF6666'
+      },
+      {
+        name: 'Medium Risk',
+        value: Number(
+          summary.medium_risk_count || 0
+        ),
+        color: '#FFC514'
+      },
+      {
+        name: 'Low Risk',
+        value: Number(
+          summary.low_risk_count || 0
+        ),
+        color: '#49D17D'
+      }
+    ];
+  }, [summary]);
+
+
+  // ==========================================================
+  // DEPARTMENT DATA
+  // ==========================================================
+
+  const departmentData = useMemo(() => {
+    if (
+      !summary?.department_attrition ||
+      !Array.isArray(
+        summary.department_attrition
+      )
+    ) {
+      return [];
+    }
+
+    return summary.department_attrition.map(
+      (item: any) => {
+        const department =
+          item.department ??
+          item.name ??
+          item.Department ??
+          'Unknown';
+
+        const value =
+          item.high_risk ??
+          item.high_risk_count ??
+          item.count ??
+          item.value ??
+          item.attrition_count ??
+          item.attrition ??
+          0;
+
+        return {
+          department: String(department),
+          value: Number(value || 0)
+        };
+      }
+    );
+  }, [summary]);
+
+
+  // ==========================================================
+  // LOADING
+  // ==========================================================
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-9 w-9 border-2 border-purple-400 border-t-transparent" />
+      <div
+        className="
+          h-full
+          min-h-[calc(100vh-80px)]
+          flex
+          items-center
+          justify-center
+        "
+      >
+        <div
+          className="
+            w-10
+            h-10
+            rounded-full
+            border-4
+            border-purple-200
+            border-t-purple-600
+            animate-spin
+          "
+        />
       </div>
     );
   }
 
-  if (error) {
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
+
+  if (error || !summary) {
     return (
-      <div className="p-5 bg-red-50 border border-red-200 rounded-xl text-red-500 text-sm">
-        {error}
+      <div
+        className="
+          h-full
+          min-h-[calc(100vh-80px)]
+          flex
+          items-center
+          justify-center
+          px-6
+        "
+      >
+        <div
+          className="
+            max-w-md
+            w-full
+            bg-white
+            border
+            border-red-200
+            rounded-2xl
+            p-6
+            text-center
+          "
+        >
+          <AlertTriangle
+            className="
+              w-9
+              h-9
+              text-red-500
+              mx-auto
+              mb-3
+            "
+          />
+
+          <h2
+            className="
+              text-lg
+              font-extrabold
+              text-[#2D1B4E]
+            "
+          >
+            Dashboard unavailable
+          </h2>
+
+          <p
+            className="
+              mt-2
+              text-sm
+              text-slate-500
+            "
+          >
+            {error ||
+              'Dashboard information could not be loaded.'}
+          </p>
+        </div>
       </div>
     );
   }
 
-  const kpis = [
-    {
-      label: 'Total Employees',
-      value: summary.total_employees,
-      icon: Users,
-      bg: 'bg-purple-100',
-      color: 'text-purple-600'
-    },
-    {
-      label: 'High Risk',
-      value: summary.high_risk_count,
-      icon: AlertTriangle,
-      bg: 'bg-red-100',
-      color: 'text-red-500'
-    },
-    {
-      label: 'Low Risk',
-      value: summary.low_risk_count,
-      icon: ShieldCheck,
-      bg: 'bg-green-100',
-      color: 'text-green-600'
-    },
-    {
-      label: 'Attrition Rate',
-      value: `${summary.attrition_rate}%`,
-      icon: TrendingUp,
-      bg: 'bg-violet-100',
-      color: 'text-violet-600'
-    }
-  ];
 
-  const pieData = (summary.risk_distribution || []).map((item: any) => {
-    const name = String(item.name || '').toLowerCase();
-
-    let color = '#86EFAC'; // green default
-
-    if (name.includes('high')) color = '#F87171'; // red
-    else if (name.includes('medium')) color = '#FACC15'; // yellow
-    else if (name.includes('low')) color = '#86EFAC'; // green
-
-    return {
-      ...item,
-      color
-    };
-  });
+  // ==========================================================
+  // UI
+  // ==========================================================
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div
+      className="
+        w-full
+        min-h-full
+        bg-[#FBF9FF]
+        px-7
+        py-7
+      "
+    >
+      {/* ====================================================
+          TITLE
+      ==================================================== */}
+
+      <div
+        className="
+          flex
+          items-start
+          justify-between
+          gap-5
+          mb-7
+        "
+      >
         <div>
-          <h1 className="text-2xl font-bold text-[#2D1B4E]">
+          <h1
+            className="
+              text-[28px]
+              leading-tight
+              font-black
+              text-[#2D1B4E]
+            "
+          >
             Attrition Overview
           </h1>
 
-          <p className="text-sm text-[#8A73B5] mt-1">
+          <p
+            className="
+              mt-1
+              text-[15px]
+              font-medium
+              text-[#9A7BC2]
+            "
+          >
             Simple employee attrition analysis
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate('/live-predictor')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm"
-          >
-            <Sliders className="w-4 h-4" />
-            Predictor
-          </button>
 
-          <button
-            onClick={() => navigate('/predictions')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-purple-200 text-purple-600 text-sm hover:bg-purple-50"
-          >
-            Employees
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+        {/* ================================================
+            ONLY EMPLOYEES BUTTON
+
+            LIVE PREDICTOR / PREDICTOR REMOVED
+        ================================================ */}
+
+        <Link
+          to="/predictions"
+          className="
+            h-11
+            px-5
+            rounded-xl
+            bg-white
+            border
+            border-[#E2D5F7]
+            text-[#8B36E8]
+            font-bold
+            text-sm
+            flex
+            items-center
+            justify-center
+            gap-3
+            hover:bg-[#F7F1FF]
+            hover:border-purple-300
+            transition
+          "
+        >
+          Employees
+
+          <ArrowRight
+            className="
+              w-4
+              h-4
+            "
+          />
+        </Link>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((item, index) => {
-          const Icon = item.icon;
 
-          return (
-            <div
-              key={index}
-              className="bg-white border border-[#E8DFFF] rounded-2xl p-5 shadow-sm"
+      {/* ====================================================
+          KPI CARDS
+      ==================================================== */}
+
+      <div
+        className="
+          grid
+          grid-cols-1
+          sm:grid-cols-2
+          xl:grid-cols-4
+          gap-5
+        "
+      >
+        {/* TOTAL EMPLOYEES */}
+
+        <MetricCard
+          title="Total Employees"
+          value={
+            summary.total_employees?.toLocaleString() ??
+            '0'
+          }
+          icon={
+            <Users className="w-6 h-6" />
+          }
+          iconClass="
+            bg-[#F0E4FF]
+            text-[#8E35EA]
+          "
+        />
+
+
+        {/* HIGH RISK */}
+
+        <MetricCard
+          title="High Risk"
+          value={
+            summary.high_risk_count?.toLocaleString() ??
+            '0'
+          }
+          icon={
+            <AlertTriangle className="w-6 h-6" />
+          }
+          iconClass="
+            bg-[#FFE0E0]
+            text-[#F04444]
+          "
+        />
+
+
+        {/* LOW RISK */}
+
+        <MetricCard
+          title="Low Risk"
+          value={
+            summary.low_risk_count?.toLocaleString() ??
+            '0'
+          }
+          icon={
+            <ShieldCheck className="w-6 h-6" />
+          }
+          iconClass="
+            bg-[#DDF8E8]
+            text-[#18A957]
+          "
+        />
+
+
+        {/* ATTRITION RATE */}
+
+        <MetricCard
+          title="Attrition Rate"
+          value={`${Number(
+            summary.attrition_rate || 0
+          ).toFixed(1)}%`}
+          icon={
+            <TrendingUp className="w-6 h-6" />
+          }
+          iconClass="
+            bg-[#EFE9FF]
+            text-[#7C3AED]
+          "
+        />
+      </div>
+
+
+      {/* ====================================================
+          CHARTS
+      ==================================================== */}
+
+      <div
+        className="
+          grid
+          grid-cols-1
+          xl:grid-cols-2
+          gap-5
+          mt-6
+        "
+      >
+        {/* ==================================================
+            RISK DISTRIBUTION
+        ================================================== */}
+
+        <div
+          className="
+            bg-white
+            border
+            border-[#E6DBF7]
+            rounded-[18px]
+            min-h-[405px]
+            p-5
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              gap-2
+            "
+          >
+            <PieChartIcon
+              className="
+                w-5
+                h-5
+                text-[#9B3EFF]
+              "
+            />
+
+            <h2
+              className="
+                text-[16px]
+                font-extrabold
+                text-[#2D1B4E]
+              "
             >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-gray-500">{item.label}</p>
-                  <p className="text-2xl font-bold text-[#2D1B4E] mt-2">
-                    {item.value}
-                  </p>
-                </div>
+              Employee Risk Distribution
+            </h2>
+          </div>
 
-                <div className={`p-3 rounded-xl ${item.bg}`}>
-                  <Icon className={`w-5 h-5 ${item.color}`} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Risk Distribution */}
-        <div className="bg-white border border-[#E8DFFF] rounded-2xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#2D1B4E] flex items-center gap-2 mb-4">
-            <PieIcon className="w-4 h-4 text-purple-500" />
-            Employee Risk Distribution
-          </h3>
-
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          <div
+            className="
+              h-[285px]
+              mt-4
+            "
+          >
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
               <PieChart>
                 <Pie
-                  data={pieData}
+                  data={riskData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={55}
-                  outerRadius={85}
-                  paddingAngle={4}
+                  innerRadius={62}
+                  outerRadius={92}
+                  paddingAngle={1}
+                  stroke="#FFFFFF"
+                  strokeWidth={2}
                 >
-                  {pieData.map((entry: any, index: number) => (
-                    <Cell
-                      key={index}
-                      fill={entry.color}
-                    />
-                  ))}
+                  {riskData.map(
+                    (entry, index) => (
+                      <Cell
+                        key={`risk-${index}`}
+                        fill={entry.color}
+                      />
+                    )
+                  )}
                 </Pie>
 
-                <Tooltip />
+                <Tooltip
+                  formatter={(value: any) => [
+                    Number(
+                      value
+                    ).toLocaleString(),
+                    'Employees'
+                  ]}
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border:
+                      '1px solid #E7DBF7',
+                    boxShadow:
+                      '0 8px 24px rgba(60,30,100,0.08)'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Legend */}
-          <div className="flex flex-wrap gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-400" />
-              <span className="text-[#5E4B84]">High Risk</span>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-yellow-400" />
-              <span className="text-[#5E4B84]">Medium Risk</span>
-            </div>
+          {/* LEGEND */}
 
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-green-400" />
-              <span className="text-[#5E4B84]">Low Risk</span>
-            </div>
+          <div
+            className="
+              flex
+              flex-wrap
+              items-center
+              gap-5
+              text-sm
+              font-medium
+              text-[#654B8C]
+            "
+          >
+            {riskData.map(
+              (item) => (
+                <div
+                  key={item.name}
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                  "
+                >
+                  <span
+                    className="
+                      block
+                      w-3
+                      h-3
+                      rounded-full
+                    "
+                    style={{
+                      backgroundColor:
+                        item.color
+                    }}
+                  />
+
+                  <span>
+                    {item.name}
+                  </span>
+                </div>
+              )
+            )}
           </div>
         </div>
 
-        {/* Department Chart */}
-        <div className="bg-white border border-[#E8DFFF] rounded-2xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#2D1B4E] flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-purple-500" />
-            High Risk by Department
-          </h3>
 
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={summary.department_attrition}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#EEE7FA"
-                />
+        {/* ==================================================
+            HIGH RISK BY DEPARTMENT
+        ================================================== */}
 
-                <XAxis
-                  dataKey="department"
-                  tick={{ fontSize: 11 }}
-                  stroke="#8A73B5"
-                />
+        <div
+          className="
+            bg-white
+            border
+            border-[#E6DBF7]
+            rounded-[18px]
+            min-h-[405px]
+            p-5
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              gap-2
+            "
+          >
+            <BarChart3
+              className="
+                w-5
+                h-5
+                text-[#9B3EFF]
+              "
+            />
 
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  stroke="#8A73B5"
-                />
+            <h2
+              className="
+                text-[16px]
+                font-extrabold
+                text-[#2D1B4E]
+              "
+            >
+              High Risk by Department
+            </h2>
+          </div>
 
-                <Tooltip />
 
-                <Bar
-                  dataKey="high_risk"
-                  fill="#A78BFA"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div
+            className="
+              h-[320px]
+              mt-5
+            "
+          >
+            {departmentData.length > 0 ? (
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <BarChart
+                  data={departmentData}
+                  margin={{
+                    top: 5,
+                    right: 10,
+                    left: 0,
+                    bottom: 10
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="4 4"
+                    stroke="#EEE7F8"
+                    vertical
+                  />
+
+                  <XAxis
+                    dataKey="department"
+                    tick={{
+                      fill: '#9275B5',
+                      fontSize: 12
+                    }}
+                    axisLine={{
+                      stroke: '#A787CE'
+                    }}
+                    tickLine={false}
+                  />
+
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{
+                      fill: '#9275B5',
+                      fontSize: 12
+                    }}
+                    axisLine={{
+                      stroke: '#A787CE'
+                    }}
+                    tickLine={false}
+                  />
+
+                  <Tooltip
+                    formatter={(value: any) => [
+                      Number(
+                        value
+                      ).toLocaleString(),
+                      'High Risk'
+                    ]}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border:
+                        '1px solid #E7DBF7'
+                    }}
+                  />
+
+                  <Bar
+                    dataKey="value"
+                    fill="#9B7DEA"
+                    radius={[
+                      8,
+                      8,
+                      0,
+                      0
+                    ]}
+                    maxBarSize={84}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div
+                className="
+                  h-full
+                  flex
+                  items-center
+                  justify-center
+                  text-sm
+                  font-medium
+                  text-slate-400
+                "
+              >
+                No department risk data available
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+
+// ============================================================
+// METRIC CARD
+// ============================================================
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  iconClass: string;
+}
+
+
+const MetricCard: React.FC<
+  MetricCardProps
+> = ({
+  title,
+  value,
+  icon,
+  iconClass
+}) => {
+  return (
+    <div
+      className="
+        min-h-[108px]
+        bg-white
+        border
+        border-[#E6DBF7]
+        rounded-[17px]
+        px-5
+        py-4
+        flex
+        items-center
+        justify-between
+      "
+    >
+      <div>
+        <p
+          className="
+            text-[13px]
+            font-medium
+            text-[#705F85]
+          "
+        >
+          {title}
+        </p>
+
+        <p
+          className="
+            mt-2
+            text-[27px]
+            leading-none
+            font-black
+            text-[#20123F]
+          "
+        >
+          {value}
+        </p>
+      </div>
+
+
+      <div
+        className={`
+          w-12
+          h-12
+          rounded-xl
+          flex
+          items-center
+          justify-center
+          ${iconClass}
+        `}
+      >
+        {icon}
+      </div>
+    </div>
+  );
+};
+
+
+export default Dashboard;
