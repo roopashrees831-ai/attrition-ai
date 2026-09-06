@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-streamlit
-=======
 fastapi>=0.110.0
 
 uvicorn>=0.28.0
@@ -29,5 +26,5 @@ joblib>=1.3.2
 
 reportlab>=4.1.0
 
-pytest>=8.0.0streamlit>=1.63.0
->>>>>>> 09c8ff5 (Prepare Attrition AI for Streamlit deployment)
+pytest>=8.0.0
+streamlit>=1.63.0
