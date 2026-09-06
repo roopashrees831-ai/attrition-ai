@@ -197,16 +197,16 @@ const riskFromProbability = (
 };
 
 /* =========================================================
-   SAUDI DATASET CATEGORIES
+   NOVATECH DATASET CATEGORIES
 ========================================================= */
 
-const SAUDI_WLB = [
+const NOVATECH_WLB = [
   'Difficult',
   'Medium',
   'Easy'
 ];
 
-const SAUDI_JOB_SAT = [
+const NOVATECH_JOB_SAT = [
   'Not satisfied',
   'Satisfied',
   'Very satisfied'
@@ -223,7 +223,7 @@ const SAUDI_JOB_SAT = [
    categorical salary bands.
 */
 
-const SAUDI_SALARY_OPTIONS = [
+const NOVATECH_SALARY_OPTIONS = [
   {
     label: '₹1,00,000',
     value: 'Less than 5000 SAR'
@@ -279,11 +279,11 @@ const withCurrent = (
       ];
 };
 
-const salaryDisplay = (
+const novatechSalaryDisplay = (
   originalBand: string
 ) => {
   const found =
-    SAUDI_SALARY_OPTIONS.find(
+    NOVATECH_SALARY_OPTIONS.find(
       (item) =>
         clean(
           item.value
@@ -378,10 +378,10 @@ React.FC<Props> = ({
     );
 
   /* =======================================================
-     DETECT NEW SAUDI DATASET
+     DETECT NOVATECH DATASET
   ======================================================= */
 
-  const isSaudi =
+  const isNovaTech =
     useMemo(() => {
       const keys =
         Object.keys(
@@ -470,6 +470,18 @@ React.FC<Props> = ({
       )
     );
 
+  const performanceRating =
+    clean(
+      getValue(
+        rawData,
+        [
+          'PerformanceRating',
+          'AppraisalRating'
+        ],
+        '—'
+      )
+    );
+
   const experience =
     clean(
       getValue(
@@ -477,6 +489,7 @@ React.FC<Props> = ({
         [
           'Years_Experience',
           'YearsAtCompany',
+          'YearsWithCompany',
           'TotalWorkingYears'
         ],
         employee
@@ -509,7 +522,7 @@ React.FC<Props> = ({
           'Work_Life_Balance',
           'Work Life Balance'
         ],
-        isSaudi
+        isNovaTech
           ? 'Medium'
           : employee
               ?.work_life_balance ??
@@ -526,7 +539,7 @@ React.FC<Props> = ({
           'JobSatisfaction',
           'Job Satisfaction'
         ],
-        isSaudi
+        isNovaTech
           ? 'Satisfied'
           : employee
               ?.job_satisfaction ??
@@ -535,7 +548,7 @@ React.FC<Props> = ({
     );
 
   /*
-     This remains the ORIGINAL salary category.
+     For NovaTech this remains the ORIGINAL salary category.
      Example:
      From 5000 to 10000 S.R
 
@@ -559,12 +572,12 @@ React.FC<Props> = ({
     );
 
   /*
-     Only this display version becomes ₹.
+     Only the NovaTech display version becomes ₹.
   */
 
   const displayedSalary =
-    isSaudi
-      ? salaryDisplay(
+    isNovaTech
+      ? novatechSalaryDisplay(
           originalSalary
         )
       : originalSalary;
@@ -840,21 +853,21 @@ React.FC<Props> = ({
         )
       ) {
         const before =
-          isSaudi
-            ? salaryDisplay(
+          isNovaTech
+            ? novatechSalaryDisplay(
                 originalSalary
               )
             : originalSalary;
 
         const after =
-          isSaudi
-            ? salaryDisplay(
+          isNovaTech
+            ? novatechSalaryDisplay(
                 salary
               )
             : salary;
 
         result.push(
-          `Monthly Salary: ${before} → ${after}`
+          `${isNovaTech ? 'Monthly Salary' : 'Monthly Income'}: ${before} → ${after}`
         );
       }
 
@@ -868,7 +881,7 @@ React.FC<Props> = ({
       originalWlb,
       originalSat,
       originalSalary,
-      isSaudi
+      isNovaTech
     ]);
 
   /* =======================================================
@@ -937,7 +950,7 @@ React.FC<Props> = ({
         );
 
         if (
-          isSaudi
+          isNovaTech
         ) {
           /*
              IMPORTANT:
@@ -980,7 +993,7 @@ React.FC<Props> = ({
           );
         } else {
           /*
-             IBM / NUMERIC DATASET
+             IBM / LAVENDER NUMERIC DATASET
           */
 
           setValue(
@@ -1308,9 +1321,15 @@ React.FC<Props> = ({
                 icon={
                   <Building2 className="w-4 h-4" />
                 }
-                label="Sector"
+                label={
+                  isNovaTech
+                    ? 'Sector'
+                    : 'Performance Rating'
+                }
                 value={
-                  sector
+                  isNovaTech
+                    ? sector
+                    : performanceRating
                 }
               />
 
@@ -1318,7 +1337,11 @@ React.FC<Props> = ({
                 icon={
                   <Clock3 className="w-4 h-4" />
                 }
-                label="Experience"
+                label={
+                  isNovaTech
+                    ? 'Experience'
+                    : 'Years at Company'
+                }
                 value={
                   experience
                 }
@@ -1328,7 +1351,11 @@ React.FC<Props> = ({
                 icon={
                   <IndianRupee className="w-4 h-4" />
                 }
-                label="Monthly Salary"
+                label={
+                  isNovaTech
+                    ? 'Monthly Salary'
+                    : 'Monthly Income'
+                }
                 value={
                   displayedSalary
                 }
@@ -2010,9 +2037,9 @@ React.FC<Props> = ({
                     inputStyle
                   }
                 >
-                  {isSaudi ? (
+                  {isNovaTech ? (
                     withCurrent(
-                      SAUDI_WLB,
+                      NOVATECH_WLB,
                       originalWlb
                     ).map(
                       (
@@ -2077,9 +2104,9 @@ React.FC<Props> = ({
                     inputStyle
                   }
                 >
-                  {isSaudi ? (
+                  {isNovaTech ? (
                     withCurrent(
-                      SAUDI_JOB_SAT,
+                      NOVATECH_JOB_SAT,
                       originalSat
                     ).map(
                       (
@@ -2122,12 +2149,16 @@ React.FC<Props> = ({
               {/* MONTHLY SALARY */}
 
               <ControlCard
-                title="Monthly Salary"
+                title={
+                  isNovaTech
+                    ? 'Monthly Salary'
+                    : 'Monthly Income'
+                }
                 current={
                   displayedSalary
                 }
               >
-                {isSaudi ? (
+                {isNovaTech ? (
                   <select
                     value={
                       salary
@@ -2145,7 +2176,7 @@ React.FC<Props> = ({
                       inputStyle
                     }
                   >
-                    {SAUDI_SALARY_OPTIONS.map(
+                    {NOVATECH_SALARY_OPTIONS.map(
                       (
                         option
                       ) => (
