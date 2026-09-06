@@ -7,7 +7,6 @@ import {
   Building2,
   LogOut,
   Zap,
-  Network,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -34,12 +33,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
       name: 'Predictions',
       path: '/predictions',
       icon: Users
-    },
-
-    {
-      name: 'System Architecture',
-      path: '/architecture',
-      icon: Network
     },
 
     {

@@ -11,13 +11,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-[#FCFAFF] relative overflow-hidden">
+    <div className="flex h-screen bg-[#FCFAFF] overflow-hidden">
+      {/* Fixed sidebar */}
       <Sidebar onLogout={logout} />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <Navbar />
+      {/* Right side */}
+      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden">
+        {/* Fixed navbar */}
+        <div className="shrink-0">
+          <Navbar />
+        </div>
 
-        <main className="flex-1 p-6 overflow-y-auto bg-[#FCFAFF]">
+        {/* Only this content scrolls */}
+        <main className="flex-1 min-h-0 overflow-y-auto bg-[#FCFAFF]">
           {children}
         </main>
       </div>

@@ -609,7 +609,7 @@ def preprocess_and_train_models(
             min_samples_leaf=3,
             class_weight="balanced_subsample",
             random_state=42,
-            n_jobs=-1,
+            n_jobs=1,
         ),
         "Gradient Boosting": GradientBoostingClassifier(
             n_estimators=180,
@@ -1393,25 +1393,12 @@ def batch_predict(
             prob_float
         )
 
-        local_factors = calculate_local_probability_factors(
-            row_dict=model_row,
-            model=model,
-            preprocessor=preprocessor,
-            num_cols=num_cols,
-            cat_cols=cat_cols,
-            original_probability=prob_float,
-            top_n=6,
-        )
-
-        risk_factors = _model_aligned_risk_factors(
-            local_factors
-        )
-
-        recommendations = generate_retention_recommendations(
-            row=model_row,
-            prob=prob_float,
-            risk_factors=risk_factors,
-        )
+        # Batch setup stores the real ML probability and risk level.
+        # Detailed local explanation is calculated on demand when
+        # View Result / single-employee prediction is opened.
+        local_factors = []
+        risk_factors = []
+        recommendations = []
 
         employee_id = str(
             full_row.get(

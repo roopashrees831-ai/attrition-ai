@@ -48,3 +48,4 @@ Thumbs.db
 .vscode/
 .idea/
 data/uploads/
+backend/attrition_ai.db

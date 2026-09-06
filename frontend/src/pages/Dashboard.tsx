@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import {
   AlertTriangle,
-  ArrowRight,
   BarChart3,
   PieChart as PieChartIcon,
   ShieldCheck,
@@ -285,15 +283,7 @@ export const Dashboard: React.FC = () => {
           TITLE
       ==================================================== */}
 
-      <div
-        className="
-          flex
-          items-start
-          justify-between
-          gap-5
-          mb-7
-        "
-      >
+      <div className="mb-7">
         <div>
           <h1
             className="
@@ -317,44 +307,6 @@ export const Dashboard: React.FC = () => {
             Simple employee attrition analysis
           </p>
         </div>
-
-
-        {/* ================================================
-            ONLY EMPLOYEES BUTTON
-
-            LIVE PREDICTOR / PREDICTOR REMOVED
-        ================================================ */}
-
-        <Link
-          to="/predictions"
-          className="
-            h-11
-            px-5
-            rounded-xl
-            bg-white
-            border
-            border-[#E2D5F7]
-            text-[#8B36E8]
-            font-bold
-            text-sm
-            flex
-            items-center
-            justify-center
-            gap-3
-            hover:bg-[#F7F1FF]
-            hover:border-purple-300
-            transition
-          "
-        >
-          Employees
-
-          <ArrowRight
-            className="
-              w-4
-              h-4
-            "
-          />
-        </Link>
       </div>
 
 

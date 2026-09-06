@@ -27,7 +27,7 @@ DEMO_COMPANIES = [
         "name": "IBM HR Analytics",
         "industry": "Technology & Research",
         "email": "demo@ibm-hr.local",
-        "password": "demo-access",
+        "password": "12345678",
 
         "filename": "WA_Fn-UseC_-HR-Employee-Attrition.csv",
 
@@ -39,7 +39,7 @@ DEMO_COMPANIES = [
         "name": "NovaTech Solutions",
         "industry": "Enterprise Software",
         "email": "demo@novatech.local",
-        "password": "demo-access",
+        "password": "12345678",
 
         "filename": "employee_attrition_dataset.csv",
 
@@ -51,7 +51,7 @@ DEMO_COMPANIES = [
         "name": "Lavender Systems",
         "industry": "AI & Cloud Services",
         "email": "hr@lavendersystems.com",
-        "password": "Lavender@2026",
+        "password": "12345678",
 
         "filename": "HR_Attrition_Indian_Dataset.csv",
 
@@ -228,70 +228,34 @@ def normalize_novatech(df):
         "[INFO] Preparing NovaTech Kaggle dataset..."
     )
 
-
     df = df.copy()
-
 
     df.columns = [
         str(column).strip()
         for column in df.columns
     ]
 
-
-    # Convert Kaggle column names
-    # into names used by our application.
+    # This public NovaTech demo dataset uses a different schema from IBM.
+    # Keep its real source features instead of inventing IBM-only columns.
+    # Rename only fields that have a direct, safe application equivalent.
     rename_map = {
-
-        "Employee_ID":
-            "EmployeeNumber",
-
-        "Job_Role":
-            "JobRole",
-
-        "Monthly_Income":
-            "MonthlyIncome",
-
-        "Years_at_Company":
-            "YearsAtCompany",
-
-        "Work_Life_Balance":
-            "WorkLifeBalance",
-
-        "Job_Satisfaction":
-            "JobSatisfaction",
-
-        "Performance_Rating":
-            "PerformanceRating",
-
-        "Distance_From_Home":
-            "DistanceFromHome",
-
-        "Overtime":
-            "OverTime"
+        "ID": "EmployeeNumber",
+        "JobTitle": "JobRole",
+        "Job_Satisfaction": "JobSatisfaction",
+        "Work_Live_Balance": "WorkLifeBalance",
     }
 
-
-    df = df.rename(
-        columns=rename_map
-    )
-
+    df = df.rename(columns=rename_map)
 
     required = [
         "EmployeeNumber",
-        "Age",
-        "Gender",
         "Department",
         "JobRole",
-        "MonthlyIncome",
         "JobSatisfaction",
         "WorkLifeBalance",
         "OverTime",
-        "YearsAtCompany",
-        "DistanceFromHome",
-        "PerformanceRating",
-        "Attrition"
+        "Attrition",
     ]
-
 
     missing = [
         column
@@ -299,35 +263,19 @@ def normalize_novatech(df):
         if column not in df.columns
     ]
 
-
     if missing:
-
         raise ValueError(
             "NovaTech Kaggle dataset "
             f"is missing columns: {missing}"
         )
 
+    # Normalize only true binary Yes/No fields.
+    df["Attrition"] = normalize_yes_no(df["Attrition"])
+    df["OverTime"] = normalize_yes_no(df["OverTime"])
 
-    df = df[
-        required
-    ].copy()
-
-
-    df["Attrition"] = normalize_yes_no(
-        df["Attrition"]
-    )
-
-
-    df["OverTime"] = normalize_yes_no(
-        df["OverTime"]
-    )
-
-
-    df = clean_numeric_columns(
-        df
-    )
-
-
+    # IMPORTANT: do not force NovaTech's real categorical ranges
+    # (salary, distance, experience, satisfaction, etc.) into fake numbers.
+    # The ML pipeline handles these categorical values directly.
     return df
 
 
@@ -555,7 +503,12 @@ def load_company_dataset(
     )
 
 
-    # Fill missing numeric values
+    # Fill missing numeric values only for numeric columns that
+    # actually exist in this company's real dataset.
+    #
+    # NovaTech intentionally keeps several source fields as categories
+    # (for example MonthlySalary ranges and Work_Live_Balance labels),
+    # so we must not force IBM-style numeric columns onto it.
     numeric_columns = [
         "Age",
         "MonthlyIncome",
@@ -568,6 +521,12 @@ def load_company_dataset(
 
 
     for column in numeric_columns:
+
+        if column not in df.columns:
+            continue
+
+        if not pd.api.types.is_numeric_dtype(df[column]):
+            continue
 
         if df[column].isnull().any():
 
@@ -583,7 +542,7 @@ def load_company_dataset(
             )
 
 
-    # Fill missing categorical values
+    # Fill missing categorical values only when the field exists.
     categorical_columns = [
         "Gender",
         "Department",
@@ -593,6 +552,9 @@ def load_company_dataset(
 
 
     for column in categorical_columns:
+
+        if column not in df.columns:
+            continue
 
         df[column] = df[
             column
