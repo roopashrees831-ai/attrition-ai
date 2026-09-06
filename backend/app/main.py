@@ -1,4 +1,5 @@
 import os
+import threading
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,12 +21,10 @@ from app.services.seed_data import seed_database
 # DATABASE
 # ============================================================
 
+# Create database tables immediately.
+# Do NOT run ML training here because Render needs the
+# web server to open its port quickly.
 Base.metadata.create_all(bind=engine)
-
-try:
-    seed_database()
-except Exception as e:
-    print(f"[WARN] Database seeding check note: {e}")
 
 
 # ============================================================
@@ -37,6 +36,50 @@ app = FastAPI(
     description="Multi-company Employee Attrition Prediction Platform",
     version="1.0.0"
 )
+
+
+# ============================================================
+# BACKGROUND DATABASE / ML INITIALIZATION
+# ============================================================
+
+def seed_in_background():
+    """
+    Load seed data and prepare ML models in the background.
+
+    This prevents Render deployment from waiting for model
+    training before the FastAPI server opens its port.
+    """
+
+    try:
+        print("[INFO] Starting database seeding in background...")
+
+        seed_database()
+
+        print("[INFO] Database seeding completed successfully.")
+
+    except Exception as e:
+        print(
+            f"[WARN] Background database seeding failed: {e}"
+        )
+
+
+@app.on_event("startup")
+def start_background_seed():
+    """
+    Start database/model initialization without blocking
+    FastAPI startup.
+    """
+
+    thread = threading.Thread(
+        target=seed_in_background,
+        daemon=True
+    )
+
+    thread.start()
+
+    print(
+        "[INFO] Background initialization started."
+    )
 
 
 # ============================================================
@@ -121,7 +164,9 @@ assets_dir = os.path.join(
 if os.path.exists(assets_dir):
     app.mount(
         "/assets",
-        StaticFiles(directory=assets_dir),
+        StaticFiles(
+            directory=assets_dir
+        ),
         name="assets"
     )
 
@@ -140,12 +185,13 @@ async def serve_frontend(full_path: str):
             detail="API route not found"
         )
 
-    # Check if requested frontend file exists
+    # Requested frontend file
     requested_file = os.path.join(
         frontend_dist,
         full_path
     )
 
+    # Serve actual frontend file when available
     if (
         full_path
         and
@@ -167,7 +213,8 @@ async def serve_frontend(full_path: str):
         )
 
     return {
-        "message": "Frontend build not found. Run npm run build first."
+        "message":
+        "Frontend build not found. Run npm run build first."
     }
 
 
