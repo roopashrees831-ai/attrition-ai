@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import secrets
@@ -122,6 +122,7 @@ def _token_response(
 )
 def login(
     request: LoginRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
 
@@ -212,29 +213,24 @@ def login(
     # SEND LOGIN ALERT TO THE HR EMAIL
     # --------------------------------------------------------
 
-    try:
-        send_login_alert(
-            hr_email=hr_email,
+    # Send security emails AFTER the login response.
+    # This keeps Render login fast.
+    background_tasks.add_task(
+        send_login_alert,
+        hr_email=hr_email,
+        company_name=company.company_name,
+    )
+
+    if hr_email.lower() != MAIN_HR_EMAIL.lower():
+        background_tasks.add_task(
+            send_main_hr_login_alert,
+            logged_in_email=hr_email,
             company_name=company.company_name,
         )
 
-        if hr_email.lower() != MAIN_HR_EMAIL.lower():
-            send_main_hr_login_alert(
-                logged_in_email=hr_email,
-                company_name=company.company_name,
-            )
-
-        print(
-            f"[SUCCESS] Login alert sent to {hr_email}"
-        )
-
-    except Exception as exc:
-
-        # Email failure should not destroy a valid login.
-        print(
-            "[WARNING] Login successful but "
-            f"email alert failed: {exc}"
-        )
+    print(
+        f"[INFO] Login successful. Email alert queued for {hr_email}"
+    )
 
     # --------------------------------------------------------
     # RETURN LOGIN TOKEN
