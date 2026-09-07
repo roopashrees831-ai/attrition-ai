@@ -6,8 +6,6 @@ import {
   ShieldCheck,
   Lock,
   KeyRound,
-  Eye,
-  EyeOff,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -23,21 +21,19 @@ export const CompanySettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // ============================================================
-  // PASSWORD DATA
+  // AUTHORIZED HR EMAIL
   // ============================================================
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newHREmail, setNewHREmail] = useState('');
+  const [addHRCode, setAddHRCode] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
 
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [hrVerificationStep, setHRVerificationStep] =
+    useState(false);
 
-  const [changingPassword, setChangingPassword] = useState(false);
-
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [hrLoading, setHRLoading] = useState(false);
+  const [hrError, setHRError] = useState('');
+  const [hrSuccess, setHRSuccess] = useState('');
 
   // ============================================================
   // LOAD COMPANY
@@ -60,73 +56,96 @@ export const CompanySettings: React.FC = () => {
   }, []);
 
   // ============================================================
-  // CHANGE PASSWORD
+  // ADD NEW HR EMAIL
   // ============================================================
 
-  const handleChangePassword = async (
+  const handleAddHREmail = async (
     event: React.FormEvent
   ) => {
     event.preventDefault();
 
-    setPasswordError('');
-    setPasswordSuccess('');
+    setHRError('');
+    setHRSuccess('');
 
-    if (!currentPassword.trim()) {
-      setPasswordError('Please enter your current password.');
+    if (!newHREmail.trim()) {
+      setHRError('Please enter the new HR email.');
       return;
     }
 
-    if (!newPassword.trim()) {
-      setPasswordError('Please enter a new password.');
+    if (!addHRCode.trim()) {
+      setHRError('Please enter the Add HR authorization code.');
       return;
     }
-
-    if (newPassword.length < 8) {
-      setPasswordError(
-        'New password must contain at least 8 characters.'
-      );
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError(
-        'New password and confirm password do not match.'
-      );
-      return;
-    }
-
-    if (currentPassword === newPassword) {
-      setPasswordError(
-        'New password must be different from the current password.'
-      );
-      return;
-    }
-
-    setChangingPassword(true);
 
     try {
-      const result = await authApi.changePassword(
-        currentPassword,
-        newPassword
+      setHRLoading(true);
+
+      const result = await authApi.addHREmail(
+        newHREmail.trim().toLowerCase(),
+        addHRCode.trim()
       );
 
-      setPasswordSuccess(
+      setHRSuccess(
         result?.message ||
-          'Company password updated successfully.'
+          'Verification code sent to the new HR email.'
       );
 
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setHRVerificationStep(true);
+      setAddHRCode('');
     } catch (error: any) {
-      setPasswordError(
+      setHRError(
         error?.response?.data?.detail ||
-          'Unable to update password.'
+          'Unable to add HR email.'
       );
     } finally {
-      setChangingPassword(false);
+      setHRLoading(false);
     }
   };
+
+
+  // ============================================================
+  // VERIFY NEW HR EMAIL
+  // ============================================================
+
+  const handleVerifyHREmail = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
+
+    setHRError('');
+    setHRSuccess('');
+
+    if (!verificationCode.trim()) {
+      setHRError('Please enter the verification code.');
+      return;
+    }
+
+    try {
+      setHRLoading(true);
+
+      const result = await authApi.verifyHREmail(
+        newHREmail.trim().toLowerCase(),
+        verificationCode.trim()
+      );
+
+      setHRSuccess(
+        result?.message ||
+          'New HR email verified and added successfully.'
+      );
+
+      setVerificationCode('');
+      setAddHRCode('');
+      setHRVerificationStep(false);
+    } catch (error: any) {
+      setHRError(
+        error?.response?.data?.detail ||
+          'Unable to verify HR email.'
+      );
+    } finally {
+      setHRLoading(false);
+    }
+  };
+
 
   // ============================================================
   // LOADING
@@ -147,8 +166,14 @@ export const CompanySettings: React.FC = () => {
   return (
     <div
       className="
-        h-[calc(100vh-118px)]
-        overflow-hidden
+        min-h-[calc(100vh-118px)]
+        w-full
+        max-w-[1320px]
+        mx-auto
+        px-5
+        xl:px-7
+        pt-4
+        pb-8
         flex
         flex-col
         gap-4
@@ -193,8 +218,6 @@ export const CompanySettings: React.FC = () => {
             grid
             grid-cols-2
             gap-4
-            flex-1
-            min-h-0
           "
         >
           {/* ==================================================
@@ -205,10 +228,10 @@ export const CompanySettings: React.FC = () => {
             className="
               h-full
               rounded-2xl
-              p-6
-              bg-[#2B174D]
+              p-5
+              bg-[#3A245F]
               border
-              border-[#62439B]
+              border-[#7655A8]
               shadow-lg
               flex
               flex-col
@@ -251,7 +274,7 @@ export const CompanySettings: React.FC = () => {
                 className="
                   flex
                   justify-between
-                  gap-5
+                  gap-3
                   border-b
                   border-white/10
                   pb-3
@@ -386,10 +409,10 @@ export const CompanySettings: React.FC = () => {
             className="
               h-full
               rounded-2xl
-              p-6
-              bg-[#2B174D]
+              p-5
+              bg-[#3A245F]
               border
-              border-[#62439B]
+              border-[#7655A8]
               shadow-lg
               flex
               flex-col
@@ -564,10 +587,9 @@ export const CompanySettings: React.FC = () => {
       <div
         className="
           grid
-          grid-cols-[0.78fr_1.22fr]
+          grid-cols-[0.82fr_1.18fr]
           gap-4
-          flex-1
-          min-h-0
+          items-stretch
         "
       >
         {/* ====================================================
@@ -576,12 +598,12 @@ export const CompanySettings: React.FC = () => {
 
         <div
           className="
-            h-full
+            min-h-[270px]
             rounded-2xl
-            p-6
-            bg-[#2B174D]
+            p-5
+            bg-[#3A245F]
             border
-            border-[#62439B]
+            border-[#7655A8]
             shadow-lg
             flex
             flex-col
@@ -651,7 +673,7 @@ export const CompanySettings: React.FC = () => {
               mt-4
             "
           >
-            Securely update the password used to access
+            Manage verified HR email access for
             this company workspace.
           </p>
 
@@ -682,7 +704,7 @@ export const CompanySettings: React.FC = () => {
                 "
               />
 
-              Current password verification
+              Company-scoped HR authorization
             </div>
 
             <div
@@ -703,7 +725,7 @@ export const CompanySettings: React.FC = () => {
                 "
               />
 
-              Password stored as secure hash
+              New HR email requires verification
             </div>
 
             <div
@@ -724,23 +746,23 @@ export const CompanySettings: React.FC = () => {
                 "
               />
 
-              Minimum 8 characters
+              Main HR receives security alerts
             </div>
           </div>
         </div>
 
         {/* ====================================================
-            CHANGE PASSWORD
+            AUTHORIZED HR EMAIL
         ==================================================== */}
 
         <div
           className="
-            h-full
+            min-h-[270px]
             rounded-2xl
-            p-6
-            bg-[#2B174D]
+            p-5
+            bg-[#3A245F]
             border
-            border-[#62439B]
+            border-[#7655A8]
             shadow-lg
             flex
             flex-col
@@ -776,7 +798,7 @@ export const CompanySettings: React.FC = () => {
                   "
                 />
 
-                Change Company Password
+                Authorized HR Email
               </h3>
 
               <p
@@ -804,17 +826,46 @@ export const CompanySettings: React.FC = () => {
                 text-[#75FFD8]
               "
             >
-              SECURE UPDATE
+              VERIFIED ACCESS
             </span>
           </div>
 
+
+          {/* DESCRIPTION */}
+
+          <div
+            className="
+              mt-4
+              rounded-xl
+              border
+              border-[#684889]
+              bg-[#160924]
+              px-4
+              py-3
+            "
+          >
+            <p
+              className="
+                text-[11px]
+                leading-5
+                text-white/70
+                font-semibold
+              "
+            >
+              Add another HR email to this workspace.
+              The Add-HR authorization code is checked first,
+              then a verification code is sent to the new email.
+            </p>
+          </div>
+
+
           {/* SUCCESS */}
 
-          {passwordSuccess && (
+          {hrSuccess && (
             <div
               className="
                 mt-3
-                p-2
+                p-2.5
                 rounded-xl
                 bg-emerald-400/10
                 border
@@ -828,6 +879,7 @@ export const CompanySettings: React.FC = () => {
                 className="
                   w-4
                   h-4
+                  shrink-0
                   text-emerald-300
                 "
               />
@@ -839,18 +891,19 @@ export const CompanySettings: React.FC = () => {
                   font-bold
                 "
               >
-                {passwordSuccess}
+                {hrSuccess}
               </p>
             </div>
           )}
 
+
           {/* ERROR */}
 
-          {passwordError && (
+          {hrError && (
             <div
               className="
                 mt-3
-                p-2
+                p-2.5
                 rounded-xl
                 bg-red-400/10
                 border
@@ -864,6 +917,7 @@ export const CompanySettings: React.FC = () => {
                 className="
                   w-4
                   h-4
+                  shrink-0
                   text-red-300
                 "
               />
@@ -875,356 +929,379 @@ export const CompanySettings: React.FC = () => {
                   font-bold
                 "
               >
-                {passwordError}
+                {hrError}
               </p>
             </div>
           )}
 
-          {/* FORM */}
 
-          <form
-            onSubmit={handleChangePassword}
-            className="
-              flex-1
-              flex
-              flex-col
-              justify-center
-            "
-          >
-            <div
+          {!hrVerificationStep ? (
+
+            /* ==================================================
+               STEP 1 - ADD EMAIL
+            ================================================== */
+
+            <form
+              onSubmit={handleAddHREmail}
               className="
-                grid
-                grid-cols-3
-                gap-3
-              "
-            >
-              {/* CURRENT PASSWORD */}
-
-              <div>
-                <label
-                  className="
-                    block
-                    text-[11px]
-                    font-extrabold
-                    text-white
-                    mb-1.5
-                  "
-                >
-                  Current Password
-                </label>
-
-                <div className="relative">
-                  <Lock
-                    className="
-                      absolute
-                      left-3.5
-                      top-1/2
-                      -translate-y-1/2
-                      w-4
-                      h-4
-                      text-[#C9A6ED]
-                    "
-                  />
-
-                  <input
-                    type={
-                      showCurrentPassword
-                        ? 'text'
-                        : 'password'
-                    }
-                    value={currentPassword}
-                    onChange={(event) => {
-                      setCurrentPassword(
-                        event.target.value
-                      );
-
-                      setPasswordError('');
-                      setPasswordSuccess('');
-                    }}
-                    placeholder="Current password"
-                    className="
-                      w-full
-                      h-[46px]
-                      bg-[#160924]
-                      border
-                      border-[#684889]
-                      rounded-xl
-                      pl-10
-                      pr-10
-                      text-[12px]
-                      text-white
-                      font-semibold
-                      placeholder-white/30
-                      focus:outline-none
-                      focus:border-[#AE7FE0]
-                    "
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowCurrentPassword(
-                        !showCurrentPassword
-                      )
-                    }
-                    className="
-                      absolute
-                      right-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-white/45
-                      hover:text-white
-                    "
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* NEW PASSWORD */}
-
-              <div>
-                <label
-                  className="
-                    block
-                    text-[11px]
-                    font-extrabold
-                    text-white
-                    mb-1.5
-                  "
-                >
-                  New Password
-                </label>
-
-                <div className="relative">
-                  <KeyRound
-                    className="
-                      absolute
-                      left-3.5
-                      top-1/2
-                      -translate-y-1/2
-                      w-4
-                      h-4
-                      text-[#C9A6ED]
-                    "
-                  />
-
-                  <input
-                    type={
-                      showNewPassword
-                        ? 'text'
-                        : 'password'
-                    }
-                    value={newPassword}
-                    onChange={(event) => {
-                      setNewPassword(event.target.value);
-
-                      setPasswordError('');
-                      setPasswordSuccess('');
-                    }}
-                    placeholder="New password"
-                    className="
-                      w-full
-                      h-[46px]
-                      bg-[#160924]
-                      border
-                      border-[#684889]
-                      rounded-xl
-                      pl-10
-                      pr-10
-                      text-[12px]
-                      text-white
-                      font-semibold
-                      placeholder-white/30
-                      focus:outline-none
-                      focus:border-[#AE7FE0]
-                    "
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowNewPassword(
-                        !showNewPassword
-                      )
-                    }
-                    className="
-                      absolute
-                      right-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-white/45
-                      hover:text-white
-                    "
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* CONFIRM PASSWORD */}
-
-              <div>
-                <label
-                  className="
-                    block
-                    text-[11px]
-                    font-extrabold
-                    text-white
-                    mb-1.5
-                  "
-                >
-                  Confirm Password
-                </label>
-
-                <div className="relative">
-                  <ShieldCheck
-                    className="
-                      absolute
-                      left-3.5
-                      top-1/2
-                      -translate-y-1/2
-                      w-4
-                      h-4
-                      text-[#C9A6ED]
-                    "
-                  />
-
-                  <input
-                    type={
-                      showConfirmPassword
-                        ? 'text'
-                        : 'password'
-                    }
-                    value={confirmPassword}
-                    onChange={(event) => {
-                      setConfirmPassword(
-                        event.target.value
-                      );
-
-                      setPasswordError('');
-                      setPasswordSuccess('');
-                    }}
-                    placeholder="Confirm password"
-                    className="
-                      w-full
-                      h-[46px]
-                      bg-[#160924]
-                      border
-                      border-[#684889]
-                      rounded-xl
-                      pl-10
-                      pr-10
-                      text-[12px]
-                      text-white
-                      font-semibold
-                      placeholder-white/30
-                      focus:outline-none
-                      focus:border-[#AE7FE0]
-                    "
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowConfirmPassword(
-                        !showConfirmPassword
-                      )
-                    }
-                    className="
-                      absolute
-                      right-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-white/45
-                      hover:text-white
-                    "
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* BUTTON */}
-
-            <div
-              className="
+                flex-1
                 flex
-                justify-end
-                mt-5
+                flex-col
+                justify-center
               "
             >
-              <button
-                type="submit"
-                disabled={
-                  changingPassword ||
-                  !currentPassword ||
-                  !newPassword ||
-                  !confirmPassword
-                }
+              <div
                 className="
-                  min-w-[245px]
-                  h-[45px]
-                  px-6
-                  rounded-xl
-                  bg-gradient-to-r
-                  from-[#7C4DDA]
-                  to-[#9B57E7]
-                  text-white
-                  text-[12px]
-                  font-extrabold
-                  flex
-                  items-center
-                  justify-center
-                  gap-2
-                  shadow-lg
-                  shadow-purple-900/30
-                  hover:brightness-110
-                  transition
-                  disabled:opacity-45
-                  disabled:cursor-not-allowed
+                  grid
+                  grid-cols-2
+                  gap-3
                 "
               >
-                {changingPassword ? (
-                  <>
-                    <div
-                      className="
-                        w-4
-                        h-4
-                        rounded-full
-                        border-2
-                        border-white/30
-                        border-t-white
-                        animate-spin
-                      "
-                    />
+                <div>
+                  <label
+                    className="
+                      block
+                      text-[11px]
+                      font-extrabold
+                      text-white
+                      mb-1.5
+                    "
+                  >
+                    New HR Email
+                  </label>
 
-                    Updating Password...
-                  </>
-                ) : (
-                  <>
-                    <KeyRound className="w-4 h-4" />
+                  <input
+                    type="email"
+                    value={newHREmail}
+                    onChange={(event) => {
+                      setNewHREmail(
+                        event.target.value
+                      );
 
-                    Update Company Password
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                      setHRError('');
+                      setHRSuccess('');
+                    }}
+                    placeholder="example@gmail.com"
+                    className="
+                      w-full
+                      h-[46px]
+                      bg-[#160924]
+                      border
+                      border-[#684889]
+                      rounded-xl
+                      px-4
+                      text-[12px]
+                      text-white
+                      font-semibold
+                      placeholder-white/30
+                      focus:outline-none
+                      focus:border-[#AE7FE0]
+                    "
+                  />
+                </div>
+
+
+                <div>
+                  <label
+                    className="
+                      block
+                      text-[11px]
+                      font-extrabold
+                      text-white
+                      mb-1.5
+                    "
+                  >
+                    Add-HR Authorization Code
+                  </label>
+
+                  <input
+                    type="password"
+                    value={addHRCode}
+                    onChange={(event) => {
+                      setAddHRCode(
+                        event.target.value
+                      );
+
+                      setHRError('');
+                      setHRSuccess('');
+                    }}
+                    placeholder="Enter authorization code"
+                    className="
+                      w-full
+                      h-[46px]
+                      bg-[#160924]
+                      border
+                      border-[#684889]
+                      rounded-xl
+                      px-4
+                      text-[12px]
+                      text-white
+                      font-semibold
+                      placeholder-white/30
+                      focus:outline-none
+                      focus:border-[#AE7FE0]
+                    "
+                  />
+                </div>
+              </div>
+
+
+              <div
+                className="
+                  flex
+                  justify-end
+                  mt-5
+                "
+              >
+                <button
+                  type="submit"
+                  disabled={
+                    hrLoading ||
+                    !newHREmail ||
+                    !addHRCode
+                  }
+                  className="
+                    min-w-[245px]
+                    h-[45px]
+                    px-6
+                    rounded-xl
+                    bg-gradient-to-r
+                    from-[#7C4DDA]
+                    to-[#9B57E7]
+                    text-white
+                    text-[12px]
+                    font-extrabold
+                    flex
+                    items-center
+                    justify-center
+                    gap-2
+                    shadow-lg
+                    shadow-purple-900/30
+                    hover:brightness-110
+                    transition
+                    disabled:opacity-45
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  {hrLoading ? (
+                    <>
+                      <div
+                        className="
+                          w-4
+                          h-4
+                          rounded-full
+                          border-2
+                          border-white/30
+                          border-t-white
+                          animate-spin
+                        "
+                      />
+
+                      Sending Code...
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+
+                      Add New HR Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+          ) : (
+
+            /* ==================================================
+               STEP 2 - VERIFY EMAIL
+            ================================================== */
+
+            <form
+              onSubmit={handleVerifyHREmail}
+              className="
+                flex-1
+                flex
+                flex-col
+                justify-center
+              "
+            >
+              <div
+                className="
+                  grid
+                  grid-cols-2
+                  gap-3
+                "
+              >
+                <div>
+                  <label
+                    className="
+                      block
+                      text-[11px]
+                      font-extrabold
+                      text-white
+                      mb-1.5
+                    "
+                  >
+                    New HR Email
+                  </label>
+
+                  <input
+                    value={newHREmail}
+                    readOnly
+                    className="
+                      w-full
+                      h-[46px]
+                      bg-[#160924]
+                      border
+                      border-[#684889]
+                      rounded-xl
+                      px-4
+                      text-[12px]
+                      text-white/70
+                      font-semibold
+                      outline-none
+                    "
+                  />
+                </div>
+
+
+                <div>
+                  <label
+                    className="
+                      block
+                      text-[11px]
+                      font-extrabold
+                      text-white
+                      mb-1.5
+                    "
+                  >
+                    Email Verification Code
+                  </label>
+
+                  <input
+                    value={verificationCode}
+                    onChange={(event) => {
+                      setVerificationCode(
+                        event.target.value
+                      );
+
+                      setHRError('');
+                      setHRSuccess('');
+                    }}
+                    placeholder="6-digit code"
+                    maxLength={6}
+                    inputMode="numeric"
+                    className="
+                      w-full
+                      h-[46px]
+                      bg-[#160924]
+                      border
+                      border-[#684889]
+                      rounded-xl
+                      px-4
+                      text-[12px]
+                      text-white
+                      font-semibold
+                      placeholder-white/30
+                      focus:outline-none
+                      focus:border-[#AE7FE0]
+                    "
+                  />
+                </div>
+              </div>
+
+
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  mt-5
+                  gap-3
+                "
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHRVerificationStep(false);
+                    setVerificationCode('');
+                    setHRError('');
+                    setHRSuccess('');
+                  }}
+                  className="
+                    h-[45px]
+                    px-5
+                    rounded-xl
+                    border
+                    border-[#684889]
+                    text-white/75
+                    text-[11px]
+                    font-extrabold
+                    hover:bg-white/5
+                    transition
+                  "
+                >
+                  Change Email
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    hrLoading ||
+                    !verificationCode
+                  }
+                  className="
+                    min-w-[245px]
+                    h-[45px]
+                    px-6
+                    rounded-xl
+                    bg-gradient-to-r
+                    from-[#7C4DDA]
+                    to-[#9B57E7]
+                    text-white
+                    text-[12px]
+                    font-extrabold
+                    flex
+                    items-center
+                    justify-center
+                    gap-2
+                    shadow-lg
+                    shadow-purple-900/30
+                    hover:brightness-110
+                    transition
+                    disabled:opacity-45
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  {hrLoading ? (
+                    <>
+                      <div
+                        className="
+                          w-4
+                          h-4
+                          rounded-full
+                          border-2
+                          border-white/30
+                          border-t-white
+                          animate-spin
+                        "
+                      />
+
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+
+                      Verify & Add HR Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
+
       </div>
     </div>
   );

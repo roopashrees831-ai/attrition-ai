@@ -112,6 +112,50 @@ export const authApi = {
 
 
   // ----------------------------------------------------------
+  // ADD NEW HR EMAIL
+  // ----------------------------------------------------------
+
+  addHREmail: async (
+    new_email: string,
+    authorization_code: string
+  ) => {
+
+    const response =
+      await api.post(
+        '/auth/add-hr-email',
+        {
+          new_email,
+          authorization_code
+        }
+      );
+
+    return response.data;
+  },
+
+
+  // ----------------------------------------------------------
+  // VERIFY NEW HR EMAIL
+  // ----------------------------------------------------------
+
+  verifyHREmail: async (
+    email: string,
+    verification_code: string
+  ) => {
+
+    const response =
+      await api.post(
+        '/auth/verify-hr-email',
+        {
+          email,
+          verification_code
+        }
+      );
+
+    return response.data;
+  },
+
+
+  // ----------------------------------------------------------
   // CHANGE COMPANY PASSWORD
   // ----------------------------------------------------------
 

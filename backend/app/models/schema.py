@@ -29,6 +29,15 @@ class User(Base):
 
     company = relationship("Company", back_populates="users")
 
+class AuthorizedHREmail(Base):
+    __tablename__ = "authorized_hr_emails"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    email = Column(String, index=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class Dataset(Base):
     __tablename__ = "datasets"
 

@@ -15,6 +15,7 @@ class Token(BaseModel):
 
 class LoginRequest(BaseModel):
     company_name: str
+    email: str
     password: str
 
 
@@ -30,11 +31,22 @@ class ChangePasswordRequest(BaseModel):
 class ForgotPasswordRequest(BaseModel):
     company_name: str
     email: str
+    recovery_code: str
 
 
 class ResetPasswordRequest(BaseModel):
     reset_token: str
     new_password: str
+
+
+class AddHREmailRequest(BaseModel):
+    new_email: str
+    authorization_code: str
+
+
+class VerifyHREmailRequest(BaseModel):
+    email: str
+    verification_code: str
 
 
 # ============================================================

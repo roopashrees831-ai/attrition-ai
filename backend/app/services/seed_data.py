@@ -6,6 +6,7 @@ from app.database import engine, Base, SessionLocal
 from app.models.schema import (
     Company,
     User,
+    AuthorizedHREmail,
     Dataset,
     TrainedModel,
     EmployeePrediction
@@ -19,6 +20,31 @@ from app.config import settings
 
 
 # ============================================================
+# AUTH CONFIGURATION
+# ============================================================
+
+FIXED_LOGIN_PASSWORD = os.getenv(
+    "ATTRITION_FIXED_PASSWORD",
+    ""
+)
+
+MAIN_HR_EMAIL = os.getenv(
+    "ATTRITION_MAIN_HR_EMAIL",
+    ""
+)
+
+if not FIXED_LOGIN_PASSWORD:
+    raise RuntimeError(
+        "ATTRITION_FIXED_PASSWORD environment variable is missing"
+    )
+
+if not MAIN_HR_EMAIL:
+    raise RuntimeError(
+        "ATTRITION_MAIN_HR_EMAIL environment variable is missing"
+    )
+
+
+# ============================================================
 # 3 COMPANIES - ALL USING KAGGLE DATASETS
 # ============================================================
 
@@ -27,7 +53,7 @@ DEMO_COMPANIES = [
         "name": "IBM HR Analytics",
         "industry": "Technology & Research",
         "email": "demo@ibm-hr.local",
-        "password": "12345678",
+        "password": FIXED_LOGIN_PASSWORD,
 
         "filename": "WA_Fn-UseC_-HR-Employee-Attrition.csv",
 
@@ -39,7 +65,7 @@ DEMO_COMPANIES = [
         "name": "NovaTech Solutions",
         "industry": "Enterprise Software",
         "email": "demo@novatech.local",
-        "password": "12345678",
+        "password": FIXED_LOGIN_PASSWORD,
 
         "filename": "employee_attrition_dataset.csv",
 
@@ -51,7 +77,7 @@ DEMO_COMPANIES = [
         "name": "Lavender Systems",
         "industry": "AI & Cloud Services",
         "email": "hr@lavendersystems.com",
-        "password": "12345678",
+        "password": FIXED_LOGIN_PASSWORD,
 
         "filename": "HR_Attrition_Indian_Dataset.csv",
 
@@ -1300,6 +1326,23 @@ def seed_database():
                 user
             )
 
+
+            db.commit()
+
+
+            # =================================================
+            # REGISTER MAIN HR EMAIL
+            # =================================================
+
+            authorized_hr = AuthorizedHREmail(
+                company_id=company.id,
+                email=MAIN_HR_EMAIL.strip().lower(),
+                is_active=True
+            )
+
+            db.add(
+                authorized_hr
+            )
 
             db.commit()
 

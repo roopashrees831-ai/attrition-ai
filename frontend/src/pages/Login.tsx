@@ -4,6 +4,7 @@ import {
   BrainCircuit,
   Building2,
   LockKeyhole,
+  Mail,
   Eye,
   EyeOff,
   ArrowRight,
@@ -72,6 +73,8 @@ export const Login: React.FC = () => {
   const [selectedCompanyId, setSelectedCompanyId] =
     useState<number>(1);
 
+  const [email, setEmail] = useState('');
+
   const [password, setPassword] = useState('');
 
   const [showPassword, setShowPassword] =
@@ -97,6 +100,7 @@ export const Login: React.FC = () => {
     companyId: number,
   ) => {
     setSelectedCompanyId(companyId);
+    setEmail('');
     setPassword('');
     setLoginError('');
     setShowPassword(false);
@@ -112,6 +116,13 @@ export const Login: React.FC = () => {
     event.preventDefault();
 
     setLoginError('');
+
+    if (!email.trim()) {
+      setLoginError(
+        'Please enter your HR email.',
+      );
+      return;
+    }
 
     if (!password.trim()) {
       setLoginError(
@@ -136,6 +147,7 @@ export const Login: React.FC = () => {
           body: JSON.stringify({
             company_name:
               selectedCompany.name,
+            email: email.trim().toLowerCase(),
             password,
           }),
         },
@@ -284,7 +296,7 @@ export const Login: React.FC = () => {
         h-screen
         w-full
         overflow-hidden
-        bg-[#06030B]
+        bg-[#09040F]
         text-white
         relative
       "
@@ -309,7 +321,7 @@ export const Login: React.FC = () => {
             w-[600px]
             h-[600px]
             rounded-full
-            bg-violet-700/10
+            bg-violet-600/16
             blur-[150px]
           "
         />
@@ -322,7 +334,7 @@ export const Login: React.FC = () => {
             w-[650px]
             h-[650px]
             rounded-full
-            bg-fuchsia-700/[0.08]
+            bg-fuchsia-600/[0.12]
             blur-[160px]
           "
         />
@@ -335,7 +347,7 @@ export const Login: React.FC = () => {
             w-[420px]
             h-[420px]
             rounded-full
-            bg-indigo-600/10
+            bg-indigo-500/14
             blur-[130px]
           "
         />
@@ -350,6 +362,7 @@ export const Login: React.FC = () => {
           "
         />
       </div>
+
 
       {/* =================================================
           MAIN
@@ -373,7 +386,8 @@ export const Login: React.FC = () => {
             hidden
             lg:flex
             flex-col
-            justify-between
+            justify-center
+            gap-8
             px-10
             xl:px-14
             py-7
@@ -701,7 +715,7 @@ export const Login: React.FC = () => {
                             `
                             : `
                               border-[#302039]
-                              bg-[#100815]
+                              bg-[#150A1C]
                               hover:border-violet-500/35
                               hover:bg-[#150B1C]
                             `
@@ -810,7 +824,7 @@ export const Login: React.FC = () => {
                 rounded-[22px]
                 border
                 border-[#352141]
-                bg-[#0E0713]/95
+                bg-[#14091C]/95
                 p-4
                 sm:p-5
                 shadow-[0_25px_70px_rgba(0,0,0,.30)]
@@ -955,7 +969,7 @@ export const Login: React.FC = () => {
               <div
                 className="
                   grid
-                  md:grid-cols-2
+                  md:grid-cols-3
                   gap-3
                   mt-3
                 "
@@ -998,7 +1012,7 @@ export const Login: React.FC = () => {
                         rounded-xl
                         border
                         border-[#33213E]
-                        bg-[#09050D]
+                        bg-[#100714]
                         pl-10
                         pr-4
                         text-[12px]
@@ -1006,6 +1020,65 @@ export const Login: React.FC = () => {
                         text-[#BCAFC3]
                         outline-none
                         cursor-default
+                      "
+                    />
+                  </div>
+                </div>
+
+                {/* HR EMAIL */}
+
+                <div>
+                  <label
+                    className="
+                      block
+                      mb-1.5
+                      text-[10px]
+                      font-bold
+                      text-[#B7A8BE]
+                    "
+                  >
+                    HR Email
+                  </label>
+
+                  <div className="relative">
+                    <Mail
+                      className="
+                        absolute
+                        left-3.5
+                        top-3.5
+                        w-4
+                        h-4
+                        text-violet-400
+                      "
+                    />
+
+                    <input
+                      type="email"
+                      value={email}
+                      autoComplete="email"
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+
+                        if (loginError) {
+                          setLoginError('');
+                        }
+                      }}
+                      placeholder="Enter HR email"
+                      className="
+                        w-full
+                        h-11
+                        rounded-xl
+                        border
+                        border-[#33213E]
+                        bg-[#100714]
+                        pl-10
+                        pr-4
+                        text-[12px]
+                        text-white
+                        outline-none
+                        transition-all
+                        focus:border-violet-500/70
+                        focus:shadow-[0_0_0_3px_rgba(139,92,246,.06)]
                       "
                     />
                   </div>
@@ -1065,7 +1138,7 @@ export const Login: React.FC = () => {
                         w-full
                         h-11
                         rounded-xl
-                        bg-[#09050D]
+                        bg-[#100714]
                         pl-10
                         pr-11
                         text-[12px]
